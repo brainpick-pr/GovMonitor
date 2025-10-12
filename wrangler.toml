@@ -1,0 +1,45 @@
+name = "govmonitor-worker"
+main = "src/worker.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Worker configuration
+workers_dev = true
+route = ""
+zone_id = ""
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "govmonitor-db"
+database_id = "" # Will be populated after: wrangler d1 create govmonitor-db
+
+# KV namespace for fast status lookups
+[[kv_namespaces]]
+binding = "KV"
+id = "" # Will be populated after: wrangler kv:namespace create "GOVMONITOR_KV"
+
+# Cron triggers for uptime checks
+# Multiple intervals to support flexible checking
+[triggers]
+crons = [
+    "*/5 * * * *",  # Every 5 minutes
+    "*/10 * * * *", # Every 10 minutes
+    "*/15 * * * *", # Every 15 minutes
+    "*/30 * * * *", # Every 30 minutes
+    "0 * * * *"     # Every 60 minutes
+]
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"
+USER_AGENT = "GovMonitorBot/1.0 (+https://govmonitor.org)"
+TIMEOUT_MS = "5000"
+MAX_LATENCY_MS = "10000"
+
+# Build configuration
+[build]
+command = "npm install && npm run build"
+
+[build.upload]
+format = "service-worker"

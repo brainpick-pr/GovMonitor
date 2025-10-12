@@ -1,0 +1,33 @@
+{
+  "name": "govmonitor-org",
+  "version": "1.0.0",
+  "description": "Government website uptime monitoring with Cloudflare Workers",
+  "main": "src/worker.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "tsc",
+    "db:create": "wrangler d1 create govmonitor-db",
+    "db:migrate": "wrangler d1 execute govmonitor-db --file=./schema.sql",
+    "db:migrate:local": "wrangler d1 execute govmonitor-db --local --file=./schema.sql",
+    "kv:create": "wrangler kv:namespace create GOVMONITOR_KV",
+    "frontend:install": "cd frontend && npm install",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:deploy": "wrangler pages deploy frontend/dist --project-name=govmonitor-frontend"
+  },
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "monitoring",
+    "uptime",
+    "government"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240117.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.22.1"
+  }
+}
