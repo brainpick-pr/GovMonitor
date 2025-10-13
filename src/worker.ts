@@ -12,14 +12,23 @@ interface Env {
   MAX_LATENCY_MS: string;
 }
 
+type CheckMode = 'website' | 'api-json' | 'api-text';
+
 interface Target {
   id: number;
   name: string;
   url: string;
   hostname: string;
+  state: string;
   interval_min: number;
   next_check_at: number;
   enabled: number;
+  check_mode: CheckMode;
+  expected_status: number;
+  allowed_status_codes: string | null; // JSON array of numbers
+  json_path: string | null;
+  expected_json_value: string | null;
+  text_match: string | null;
 }
 
 interface CheckResult {
@@ -27,7 +36,62 @@ interface CheckResult {
   status?: number;
   latency_ms?: number;
   error?: string;
+  validation_details?: string;
 }
+
+type AddTargetPayload = {
+  name: string;
+  url: string;
+  interval_min?: number;
+  state?: string;
+  check_mode?: CheckMode;
+  expected_status?: number;
+  allowed_status_codes?: number[];
+  json_path?: string;
+  expected_json_value?: string;
+  text_match?: string;
+};
+
+const INDIAN_STATES = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+] as const;
+
+const VALID_STATES = new Set(INDIAN_STATES.map(state => state.toLowerCase()));
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -80,6 +144,11 @@ export default {
 
       if (url.pathname === '/api/check' && request.method === 'POST') {
         return await handleManualCheck(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/state-summary' && request.method === 'GET') {
+        const window = url.searchParams.get('window') || '24h';
+        return await handleGetStateSummary(env, window, corsHeaders);
       }
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });
@@ -136,8 +205,11 @@ export default {
 
 async function handleGetStatus(env: Env, headers: Record<string, string>): Promise<Response> {
   // Try KV first for fast response
-  const cached = await env.KV.get('latest_status', 'json');
-  if (cached) {
+  const cached = await env.KV.get('latest_status', 'json') as unknown;
+  if (
+    Array.isArray(cached) &&
+    cached.every(item => item && (typeof item.state === 'string' || item.state === null))
+  ) {
     return new Response(JSON.stringify(cached), { headers });
   }
 
@@ -148,6 +220,7 @@ async function handleGetStatus(env: Env, headers: Record<string, string>): Promi
       t.name,
       t.url,
       t.hostname,
+      t.state,
       t.enabled,
       c.ts,
       c.ok,
@@ -209,11 +282,19 @@ async function handleAddTarget(
   env: Env,
   headers: Record<string, string>
 ): Promise<Response> {
-  const body = await request.json() as { name: string; url: string; interval_min?: number };
+  const body = await request.json() as AddTargetPayload;
+  const state = (body.state || '').trim();
 
   if (!body.name || !body.url) {
     return new Response(
       JSON.stringify({ error: 'name and url are required' }),
+      { status: 400, headers }
+    );
+  }
+
+  if (!state || !VALID_STATES.has(state.toLowerCase())) {
+    return new Response(
+      JSON.stringify({ error: 'A valid Indian state or union territory is required' }),
       { status: 400, headers }
     );
   }
@@ -246,14 +327,30 @@ async function handleAddTarget(
   }
 
   const interval = body.interval_min || 15;
+  const checkMode = body.check_mode || 'website';
+  const expectedStatus = body.expected_status || 200;
+  const allowedStatusCodes = body.allowed_status_codes ? JSON.stringify(body.allowed_status_codes) : null;
+  const jsonPath = body.json_path || null;
+  const expectedJsonValue = body.expected_json_value || null;
+  const textMatch = body.text_match || null;
   const now = Math.floor(Date.now() / 1000);
 
   try {
     const result = await env.DB.prepare(`
-      INSERT INTO targets (name, url, hostname, interval_min, next_check_at, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO targets (
+        name, url, hostname, state, interval_min, next_check_at,
+        check_mode, expected_status, allowed_status_codes,
+        json_path, expected_json_value, text_match,
+        created_at, updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
-    `).bind(body.name, body.url, hostname, interval, now, now, now).first();
+    `).bind(
+      body.name, body.url, hostname, state, interval, now,
+      checkMode, expectedStatus, allowedStatusCodes,
+      jsonPath, expectedJsonValue, textMatch,
+      now, now
+    ).first();
 
     // Invalidate cache
     await env.KV.delete('latest_status');
@@ -341,7 +438,52 @@ async function handleManualCheck(
   return new Response(JSON.stringify(result), { headers });
 }
 
+async function handleGetStateSummary(
+  env: Env,
+  window: string,
+  headers: Record<string, string>
+): Promise<Response> {
+  const cacheKey = `state_summary_${window}`;
+
+  // Try KV cache first
+  const cached = await env.KV.get(cacheKey, 'json');
+  if (cached) {
+    return new Response(JSON.stringify(cached), { headers });
+  }
+
+  // Map window to view name
+  const viewMap: Record<string, string> = {
+    '24h': 'state_uptime_24h',
+    '7d': 'state_uptime_7d',
+    '30d': 'state_uptime_30d',
+    '365d': 'state_uptime_365d',
+  };
+
+  const viewName = viewMap[window] || 'state_uptime_24h';
+
+  // Query from D1
+  const result = await env.DB.prepare(`SELECT * FROM ${viewName} ORDER BY state`).all();
+  const data = result.results || [];
+
+  // Cache in KV for 5 minutes
+  await env.KV.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 });
+
+  return new Response(JSON.stringify(data), { headers });
+}
+
 // Core checking logic
+
+function getJsonValue(obj: any, path: string): any {
+  const keys = path.split('.');
+  let value = obj;
+
+  for (const key of keys) {
+    if (value === null || value === undefined) return undefined;
+    value = value[key];
+  }
+
+  return value;
+}
 
 async function checkTarget(target: Target, env: Env): Promise<CheckResult | null> {
   const startTime = Date.now();
@@ -351,53 +493,104 @@ async function checkTarget(target: Target, env: Env): Promise<CheckResult | null
   let result: CheckResult;
 
   try {
-    // Try HEAD request first
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+    const requestInit: RequestInit = {
+      method: target.check_mode === 'website' ? 'HEAD' : 'GET',
+      headers: { 'User-Agent': userAgent },
+      signal: controller.signal,
+      redirect: 'follow',
+      cf: {
+        cacheTtl: 0, // Bypass cache for health checks
+      } as RequestInitCfProperties,
+    };
+
+    let response: Response;
+    let responseBody: string | null = null;
+
     try {
-      const response = await fetch(target.url, {
-        method: 'HEAD',
-        headers: { 'User-Agent': userAgent },
-        signal: controller.signal,
-        redirect: 'follow',
-      });
-
+      response = await fetch(target.url, requestInit);
       clearTimeout(timeoutId);
-      const latency = Date.now() - startTime;
 
-      result = {
-        ok: response.ok,
-        status: response.status,
-        latency_ms: latency,
-      };
-    } catch (headError) {
+      // For API checks, we need the response body
+      if (target.check_mode === 'api-json' || target.check_mode === 'api-text') {
+        responseBody = await response.text();
+      }
+    } catch (fetchError) {
       clearTimeout(timeoutId);
 
       // Fallback to GET if HEAD not supported
-      if ((headError as Error).message.includes('405')) {
+      if (target.check_mode === 'website' && (fetchError as Error).message.includes('405')) {
         const getController = new AbortController();
         const getTimeoutId = setTimeout(() => getController.abort(), timeout);
 
-        const response = await fetch(target.url, {
+        response = await fetch(target.url, {
+          ...requestInit,
           method: 'GET',
-          headers: { 'User-Agent': userAgent },
           signal: getController.signal,
-          redirect: 'follow',
         });
 
         clearTimeout(getTimeoutId);
-        const latency = Date.now() - startTime;
-
-        result = {
-          ok: response.ok,
-          status: response.status,
-          latency_ms: latency,
-        };
       } else {
-        throw headError;
+        throw fetchError;
       }
     }
+
+    const latency = Date.now() - startTime;
+
+    // Validate status code
+    const allowedCodes = target.allowed_status_codes
+      ? JSON.parse(target.allowed_status_codes) as number[]
+      : [target.expected_status];
+
+    const statusOk = allowedCodes.includes(response.status);
+    let validationOk = true;
+    let validationDetails = '';
+
+    // Mode-specific validation
+    if (statusOk && target.check_mode === 'api-json' && responseBody) {
+      try {
+        const jsonData = JSON.parse(responseBody);
+
+        if (target.json_path && target.expected_json_value) {
+          const actualValue = getJsonValue(jsonData, target.json_path);
+          validationOk = actualValue === target.expected_json_value;
+          validationDetails = validationOk
+            ? `JSON validation passed: ${target.json_path} = ${actualValue}`
+            : `JSON validation failed: ${target.json_path} = ${actualValue}, expected ${target.expected_json_value}`;
+        }
+      } catch (parseError) {
+        validationOk = false;
+        validationDetails = `Invalid JSON response: ${(parseError as Error).message}`;
+      }
+    } else if (statusOk && target.check_mode === 'api-text' && responseBody && target.text_match) {
+      validationOk = responseBody.includes(target.text_match);
+      validationDetails = validationOk
+        ? `Text match found: "${target.text_match}"`
+        : `Text match failed: "${target.text_match}" not found`;
+    }
+
+    result = {
+      ok: statusOk && validationOk,
+      status: response.status,
+      latency_ms: latency,
+      validation_details: validationDetails || undefined,
+    };
+
+    // Log structured output for Logpush
+    console.log(JSON.stringify({
+      event: 'health_check',
+      target_id: target.id,
+      target_name: target.name,
+      url: target.url,
+      check_mode: target.check_mode,
+      status: response.status,
+      latency_ms: latency,
+      ok: result.ok,
+      validation_details: validationDetails,
+      timestamp: new Date().toISOString(),
+    }));
   } catch (error) {
     const latency = Date.now() - startTime;
     result = {
@@ -405,6 +598,16 @@ async function checkTarget(target: Target, env: Env): Promise<CheckResult | null
       latency_ms: latency,
       error: (error as Error).message,
     };
+
+    console.log(JSON.stringify({
+      event: 'health_check_error',
+      target_id: target.id,
+      target_name: target.name,
+      url: target.url,
+      error: (error as Error).message,
+      latency_ms: latency,
+      timestamp: new Date().toISOString(),
+    }));
   }
 
   // Store result in D1

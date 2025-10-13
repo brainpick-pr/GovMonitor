@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS targets (
     name TEXT NOT NULL, -- Display name (e.g., "White House")
     url TEXT NOT NULL UNIQUE, -- Full URL to monitor
     hostname TEXT NOT NULL, -- Extracted hostname for display
+    state TEXT NOT NULL, -- Indian state or union territory
     interval_min INTEGER NOT NULL DEFAULT 15, -- Per-target interval override
     next_check_at INTEGER NOT NULL DEFAULT 0, -- Unix timestamp for next check
     enabled INTEGER NOT NULL DEFAULT 1, -- 1 = active, 0 = disabled
@@ -62,6 +63,7 @@ SELECT
     t.name,
     t.url,
     t.hostname,
+    t.state,
     t.enabled,
     c.ts,
     c.ok,

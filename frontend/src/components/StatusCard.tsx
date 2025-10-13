@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Activity, Clock, TrendingUp } from "lucide-react"
+import { Activity, Clock } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 
 interface StatusCardProps {
@@ -9,6 +9,7 @@ interface StatusCardProps {
     name: string
     url: string
     hostname: string
+    state: string | null
     enabled: number
     ts: number | null
     ok: number | null
@@ -21,7 +22,9 @@ interface StatusCardProps {
 
 export function StatusCard({ target, onClick }: StatusCardProps) {
   const isUp = target.ok === 1
-  const hasData = target.ts !== null
+  const timestamp = target.ts
+  const hasData = timestamp != null
+  const lastCheckedAt = hasData ? new Date(timestamp * 1000) : null
 
   return (
     <Card
@@ -29,9 +32,14 @@ export function StatusCard({ target, onClick }: StatusCardProps) {
       onClick={onClick}
     >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
-          {target.name}
-        </CardTitle>
+        <div className="flex flex-col">
+          <CardTitle className="text-sm font-medium">
+            {target.name}
+          </CardTitle>
+          {target.state && (
+            <span className="text-xs text-muted-foreground">{target.state}</span>
+          )}
+        </div>
         <Badge variant={isUp ? "success" : "destructive"}>
           {isUp ? "UP" : "DOWN"}
         </Badge>
@@ -50,7 +58,7 @@ export function StatusCard({ target, onClick }: StatusCardProps) {
                   <span className="text-muted-foreground">Status:</span>
                   <span className="font-medium">{target.status || "N/A"}</span>
                 </div>
-                {target.latency_ms && (
+                {target.latency_ms != null && (
                   <div className="flex items-center gap-1">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{target.latency_ms}ms</span>
@@ -60,9 +68,9 @@ export function StatusCard({ target, onClick }: StatusCardProps) {
 
               <div className="text-xs text-muted-foreground">
                 Last checked:{" "}
-                {formatDistanceToNow(new Date(target.ts * 1000), {
-                  addSuffix: true,
-                })}
+                {lastCheckedAt
+                  ? formatDistanceToNow(lastCheckedAt, { addSuffix: true })
+                  : "N/A"}
               </div>
             </>
           )}

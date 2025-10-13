@@ -17,4 +17,8 @@ export default defineConfig({
       },
     },
   },
+  assetsInclude: ['**/*.geojson'],
+  json: {
+    stringify: true, // Import large JSON files as strings to avoid parsing
+  },
 })

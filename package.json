@@ -11,10 +11,14 @@
     "db:migrate": "wrangler d1 execute govmonitor-db --file=./schema.sql",
     "db:migrate:local": "wrangler d1 execute govmonitor-db --local --file=./schema.sql",
     "kv:create": "wrangler kv:namespace create GOVMONITOR_KV",
+    "generate:svg": "npx tsx scripts/generate-svg-paths.ts",
     "frontend:install": "cd frontend && npm install",
     "frontend:dev": "cd frontend && npm run dev",
     "frontend:build": "cd frontend && npm run build",
-    "frontend:deploy": "wrangler pages deploy frontend/dist --project-name=govmonitor-frontend"
+    "frontend:deploy": "wrangler pages deploy frontend/dist --project-name=govmonitor-frontend",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "keywords": [
     "cloudflare",
@@ -27,7 +31,10 @@
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240117.0",
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
     "typescript": "^5.3.3",
-    "wrangler": "^3.22.1"
+    "wrangler": "^3.22.1",
+    "vitepress": "^1.3.4"
   }
 }
