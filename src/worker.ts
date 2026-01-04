@@ -162,10 +162,16 @@ export default {
   },
 
   async scheduled(event: ScheduledEvent, env: Env): Promise<void> {
+    const cronMinute = new Date(event.scheduledTime).getMinutes();
     console.log('Cron trigger fired:', new Date(event.scheduledTime).toISOString());
 
     try {
       const now = Math.floor(Date.now() / 1000);
+
+      // Run backfill check on the hour (minute 0) to catch missed checks
+      if (cronMinute === 0) {
+        await runBackfillCheck(env, now);
+      }
 
       // Get all targets that need checking
       const targets = await env.DB.prepare(
@@ -179,15 +185,26 @@ export default {
 
       console.log(`Checking ${targets.results.length} targets`);
 
-      // Check all targets in parallel
-      const checks = targets.results.map(target =>
-        checkTarget(target, env).catch(error => {
-          console.error(`Failed to check ${target.url}:`, error);
-          return null;
-        })
-      );
+      // Batch targets in groups of 25 to respect execution limits
+      const BATCH_SIZE = 25;
+      const batches: Target[][] = [];
+      for (let i = 0; i < targets.results.length; i += BATCH_SIZE) {
+        batches.push(targets.results.slice(i, i + BATCH_SIZE));
+      }
 
-      await Promise.all(checks);
+      // Process each batch with Promise.allSettled to prevent single failures from aborting
+      for (const batch of batches) {
+        const results = await Promise.allSettled(
+          batch.map(target => checkTarget(target, env))
+        );
+
+        // Log any failures
+        results.forEach((result, idx) => {
+          if (result.status === 'rejected') {
+            console.error(`Failed to check ${batch[idx].url}:`, result.reason);
+          }
+        });
+      }
 
       // Update last run timestamp
       await env.DB.prepare(
@@ -240,8 +257,8 @@ async function handleGetStatus(env: Env, headers: Record<string, string>): Promi
 
   const data = result.results || [];
 
-  // Cache in KV for 30 seconds
-  await env.KV.put('latest_status', JSON.stringify(data), { expirationTtl: 30 });
+  // Cache in KV for 60 seconds (minimum TTL)
+  await env.KV.put('latest_status', JSON.stringify(data), { expirationTtl: 60 });
 
   return new Response(JSON.stringify(data), { headers });
 }
@@ -259,7 +276,13 @@ async function handleGetHistory(
     );
   }
 
-  const seconds = window === '7d' ? 604800 : 86400; // 7 days or 24 hours
+  const windowSeconds: Record<string, number> = {
+    '24h': 86400,
+    '7d': 604800,
+    '30d': 2592000,
+    '365d': 31536000,
+  };
+  const seconds = windowSeconds[window] || 86400;
   const since = Math.floor(Date.now() / 1000) - seconds;
 
   const result = await env.DB.prepare(`
@@ -469,6 +492,79 @@ async function handleGetStateSummary(
   await env.KV.put(cacheKey, JSON.stringify(data), { expirationTtl: 300 });
 
   return new Response(JSON.stringify(data), { headers });
+}
+
+// Backfill handler for missed checks
+
+async function runBackfillCheck(env: Env, now: number): Promise<void> {
+  console.log('Running backfill check for stale targets...');
+
+  // Find targets whose next_check_at is more than 2x their interval in the past
+  // This indicates they missed their scheduled check window
+  const staleTargets = await env.DB.prepare(`
+    SELECT * FROM targets
+    WHERE enabled = 1
+    AND next_check_at < ? - (interval_min * 60 * 2)
+    ORDER BY next_check_at ASC
+    LIMIT 50
+  `).bind(now).all<Target>();
+
+  if (!staleTargets.results || staleTargets.results.length === 0) {
+    console.log('No stale targets found for backfill');
+    return;
+  }
+
+  console.log(`Found ${staleTargets.results.length} stale targets to backfill`);
+
+  // Log structured output for observability
+  console.log(JSON.stringify({
+    event: 'backfill_started',
+    stale_count: staleTargets.results.length,
+    timestamp: new Date().toISOString(),
+  }));
+
+  // Reset their next_check_at to now so they get picked up in the regular check
+  // Also queue them for immediate checking
+  const BATCH_SIZE = 10;
+  const batches: Target[][] = [];
+  for (let i = 0; i < staleTargets.results.length; i += BATCH_SIZE) {
+    batches.push(staleTargets.results.slice(i, i + BATCH_SIZE));
+  }
+
+  let checkedCount = 0;
+  let failedCount = 0;
+
+  for (const batch of batches) {
+    const results = await Promise.allSettled(
+      batch.map(async (target) => {
+        // Update next_check_at to prevent re-queuing on next run
+        await env.DB.prepare(
+          'UPDATE targets SET next_check_at = ? WHERE id = ?'
+        ).bind(now + (target.interval_min * 60), target.id).run();
+
+        // Perform the check
+        return checkTarget(target, env);
+      })
+    );
+
+    results.forEach((result, idx) => {
+      if (result.status === 'fulfilled') {
+        checkedCount++;
+      } else {
+        failedCount++;
+        console.error(`Backfill check failed for ${batch[idx].url}:`, result.reason);
+      }
+    });
+  }
+
+  console.log(JSON.stringify({
+    event: 'backfill_completed',
+    checked: checkedCount,
+    failed: failedCount,
+    timestamp: new Date().toISOString(),
+  }));
+
+  console.log(`Backfill completed: ${checkedCount} checked, ${failedCount} failed`);
 }
 
 // Core checking logic

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { StatusCard } from "./components/StatusCard"
 import { AddTargetDialog } from "./components/AddTargetDialog"
 import { StateDashboard } from "./components/StateDashboard"
+import { TargetDetail } from "./components/TargetDetail"
 import { Button } from "./components/ui/button"
 import { Plus, RefreshCw, Activity, Map } from "lucide-react"
 
@@ -24,7 +25,8 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [view, setView] = useState<"targets" | "dashboard">("targets")
+  const [view, setView] = useState<"targets" | "dashboard" | "detail">("targets")
+  const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
 
   const apiUrl = import.meta.env.VITE_API_URL || "/api"
 
@@ -125,9 +127,12 @@ function App() {
             </div>
             <div className="flex items-center gap-2">
               <Button
-                variant={view === "targets" ? "default" : "secondary"}
+                variant={view === "targets" || view === "detail" ? "default" : "secondary"}
                 size="sm"
-                onClick={() => setView("targets")}
+                onClick={() => {
+                  setView("targets")
+                  setSelectedTarget(null)
+                }}
               >
                 <Activity className="h-4 w-4 mr-2" />
                 Targets
@@ -140,7 +145,7 @@ function App() {
                 <Map className="h-4 w-4 mr-2" />
                 State Dashboard
               </Button>
-              {view === "targets" && (
+              {(view === "targets" || view === "detail") && (
                 <>
                   <Button
                     variant="secondary"
@@ -217,6 +222,15 @@ function App() {
       <main className="container mx-auto px-4 py-8">
         {view === "dashboard" ? (
           <StateDashboard apiUrl={apiUrl} />
+        ) : view === "detail" && selectedTarget ? (
+          <TargetDetail
+            target={selectedTarget}
+            apiUrl={apiUrl}
+            onBack={() => {
+              setView("targets")
+              setSelectedTarget(null)
+            }}
+          />
         ) : loading ? (
           <div className="flex items-center justify-center py-12">
             <RefreshCw className="h-8 w-8 animate-spin text-primary" />
@@ -236,7 +250,14 @@ function App() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {targets.map((target) => (
-              <StatusCard key={target.id} target={target} />
+              <StatusCard
+                key={target.id}
+                target={target}
+                onClick={() => {
+                  setSelectedTarget(target)
+                  setView("detail")
+                }}
+              />
             ))}
           </div>
         )}
