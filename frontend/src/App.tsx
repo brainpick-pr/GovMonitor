@@ -3,8 +3,9 @@ import { StatusCard } from "./components/StatusCard"
 import { AddTargetDialog } from "./components/AddTargetDialog"
 import { StateDashboard } from "./components/StateDashboard"
 import { TargetDetail } from "./components/TargetDetail"
+import { LandingPage } from "./components/LandingPage"
 import { Button } from "./components/ui/button"
-import { Plus, RefreshCw, Activity, Map } from "lucide-react"
+import { Plus, RefreshCw, Activity, Map, Home } from "lucide-react"
 
 interface Target {
   id: number
@@ -25,7 +26,7 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [view, setView] = useState<"targets" | "dashboard" | "detail">("targets")
+  const [view, setView] = useState<"landing" | "targets" | "dashboard" | "detail">("landing")
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
 
   const apiUrl = import.meta.env.VITE_API_URL || "/api"
@@ -110,6 +111,11 @@ function App() {
     a[0].localeCompare(b[0])
   )
 
+  // Show landing page
+  if (view === "landing") {
+    return <LandingPage onEnterDashboard={() => setView("targets")} />
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -126,6 +132,14 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setView("landing")}
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Home
+              </Button>
               <Button
                 variant={view === "targets" || view === "detail" ? "default" : "secondary"}
                 size="sm"
