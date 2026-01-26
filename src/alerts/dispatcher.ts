@@ -6,6 +6,7 @@
 import type { Target, AlertCondition, AlertChannel } from '../types';
 import { dispatchWebhook } from './channels/webhook';
 import { logAlertToDatabase } from './channels/database';
+import { isInMaintenanceWindow, logMaintenanceSkip } from '../maintenance/windows';
 
 /**
  * Dispatch alerts to all enabled channels
@@ -18,6 +19,28 @@ export async function dispatchAlerts(
   env: any
 ): Promise<void> {
   if (alerts.length === 0) return;
+
+  // Check if target is in maintenance window with alert suppression
+  const now = Math.floor(Date.now() / 1000);
+  const maintenanceWindow = await isInMaintenanceWindow(target.id, now, db);
+
+  if (maintenanceWindow && maintenanceWindow.suppress_alerts) {
+    console.log(`Suppressing alerts for ${target.name} - in maintenance window: ${maintenanceWindow.name}`);
+
+    // Log the suppression for each alert
+    for (const alert of alerts) {
+      await logMaintenanceSkip(
+        target.id,
+        maintenanceWindow.id,
+        'maintenance_alert_suppressed',
+        now,
+        maintenanceWindow.name,
+        db
+      );
+    }
+
+    return; // Don't dispatch alerts during maintenance
+  }
 
   // Get all enabled alert channels
   const channelsResult = await db.prepare(`

@@ -7,11 +7,38 @@ import { invalidateStatusCache } from '../utils/cache';
 import { checkWebsite } from './modes/website';
 import { checkApiJson } from './modes/api-json';
 import { checkApiText } from './modes/api-text';
+import { isInMaintenanceWindow, logMaintenanceSkip } from '../maintenance/windows';
+import { updateSchedulingMetrics } from '../scheduling/metrics';
 
 export async function checkTarget(target: Target, env: Env): Promise<CheckResult | null> {
   const startTime = Date.now();
   const timeout = parseInt(env.TIMEOUT_MS || '5000');
   const userAgent = env.USER_AGENT || 'GovMonitorBot/1.0';
+  const now = Math.floor(Date.now() / 1000);
+
+  // Check if target is in maintenance window
+  const maintenanceWindow = await isInMaintenanceWindow(target.id, now, env.DB);
+  if (maintenanceWindow && maintenanceWindow.suppress_checks) {
+    console.log(`Skipping check for ${target.name} - in maintenance window: ${maintenanceWindow.name}`);
+
+    // Log the skip
+    await logMaintenanceSkip(
+      target.id,
+      maintenanceWindow.id,
+      'maintenance_check_suppressed',
+      now,
+      maintenanceWindow.name,
+      env.DB
+    );
+
+    // Still update next_check_at to avoid backlog
+    const nextCheck = now + (target.interval_min * 60);
+    await env.DB.prepare(
+      'UPDATE targets SET next_check_at = ?, updated_at = ? WHERE id = ?'
+    ).bind(nextCheck, now, target.id).run();
+
+    return null; // Skip this check
+  }
 
   let result: CheckResult;
 
@@ -64,14 +91,14 @@ export async function checkTarget(target: Target, env: Env): Promise<CheckResult
   }
 
   // Store result in D1
-  const now = Math.floor(Date.now() / 1000);
+  const nowForDb = Math.floor(Date.now() / 1000);
   const checkInsertResult = await env.DB.prepare(`
     INSERT INTO checks (target_id, ts, ok, status, latency_ms, error)
     VALUES (?, ?, ?, ?, ?, ?)
     RETURNING id
   `).bind(
     target.id,
-    now,
+    nowForDb,
     result.ok ? 1 : 0,
     result.status || null,
     result.latency_ms || null,
@@ -79,6 +106,14 @@ export async function checkTarget(target: Target, env: Env): Promise<CheckResult
   ).first<{ id: number }>();
 
   const checkId = checkInsertResult?.id || 0;
+
+  // Update scheduling metrics for smart scheduling
+  try {
+    await updateSchedulingMetrics(target.id, result, env.DB);
+  } catch (error) {
+    console.error('Error updating scheduling metrics:', error);
+    // Don't fail the check if metrics update fails
+  }
 
   // Detect and dispatch alerts
   const { detectAlerts, getPreviousCheck, getAlertConfig } = await import('../alerts/detector');

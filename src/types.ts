@@ -154,3 +154,322 @@ export interface CreateApiKeyPayload {
   rate_limit?: number;
   expires_at?: number;
 }
+
+// ============================================================================
+// Smart Scheduling Types
+// ============================================================================
+
+export interface SmartSchedulingConfig {
+  stable_threshold_uptime: number;       // 99.5%+ = increase interval
+  unstable_threshold_uptime: number;     // <95% = decrease interval
+  min_checks_before_adjust: number;      // Need N checks before adjusting
+  max_interval_min: number;              // Don't exceed this interval
+  min_interval_min: number;              // Don't go below this interval
+  stable_multiplier: number;             // Multiply interval when stable
+  unstable_multiplier: number;           // Multiply interval when unstable
+  consecutive_failures_trigger: number;  // Decrease after N failures
+}
+
+export interface SchedulingMetrics {
+  id: number;
+  target_id: number;
+  total_checks: number;
+  successful_checks: number;
+  failed_checks: number;
+  uptime_percentage: number;
+  consecutive_successes: number;
+  consecutive_failures: number;
+  avg_latency_ms: number | null;
+  last_failure_at: number | null;
+  recommended_interval_min: number;
+  current_interval_min: number;
+  interval_last_adjusted_at: number | null;
+  adjustment_reason: string | null;
+  peak_hours: string | null;  // JSON
+  failure_time_pattern: string | null;  // JSON
+  created_at: number;
+  updated_at: number;
+}
+
+export interface IntervalAdjustment {
+  id: number;
+  target_id: number;
+  old_interval_min: number;
+  new_interval_min: number;
+  reason: string;
+  uptime_at_adjustment: number;
+  consecutive_failures_at_adjustment: number;
+  created_at: number;
+}
+
+export interface AdjustmentReport {
+  total_candidates: number;
+  adjusted: number;
+  increased: number;
+  decreased: number;
+  errors: number;
+  adjustments: IntervalAdjustment[];
+}
+
+// ============================================================================
+// Maintenance Windows Types
+// ============================================================================
+
+export type RecurrenceType = 'daily' | 'weekly' | 'monthly' | null;
+
+export interface RecurrenceConfig {
+  day_of_week?: number;  // 0-6 (Sunday-Saturday)
+  day_of_month?: number;  // 1-31
+  time?: string;  // "02:00"
+}
+
+export interface MaintenanceWindow {
+  id: number;
+  name: string;
+  description: string | null;
+  target_id: number | null;
+  state: string | null;
+  start_time: number;
+  end_time: number;
+  recurrence: RecurrenceType;
+  recurrence_config: string | null;  // JSON
+  suppress_checks: number;
+  suppress_alerts: number;
+  created_by: string | null;
+  enabled: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateMaintenanceWindowPayload {
+  name: string;
+  description?: string;
+  target_id?: number;
+  state?: string;
+  start_time: number;
+  end_time: number;
+  recurrence?: RecurrenceType;
+  recurrence_config?: RecurrenceConfig;
+  suppress_checks?: boolean;
+  suppress_alerts?: boolean;
+}
+
+export interface MaintenanceSkipLog {
+  id: number;
+  target_id: number;
+  window_id: number;
+  skip_reason: string;
+  scheduled_check_time: number;
+  window_name: string | null;
+  created_at: number;
+}
+
+// ============================================================================
+// Bulk Operations Types
+// ============================================================================
+
+export interface BulkImportResult {
+  imported: number;
+  failed: number;
+  errors: Array<{
+    row: number;
+    field: string;
+    message: string;
+  }>;
+  target_ids: number[];
+}
+
+export interface BulkTogglePayload {
+  target_ids: number[];
+  enabled: boolean;
+}
+
+export interface BulkUpdatePayload {
+  target_ids: number[];
+  updates: Partial<{
+    interval_min: number;
+    check_mode: CheckMode;
+    expected_status: number;
+    state: string;
+  }>;
+}
+
+export interface BulkDeletePayload {
+  target_ids: number[];
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  failed: number;
+  errors: string[];
+}
+
+export interface BulkExportFormat {
+  format: 'csv' | 'json';
+  filters?: {
+    state?: string;
+    enabled?: boolean;
+    check_mode?: CheckMode;
+  };
+}
+
+// ============================================================================
+// Health Check Templates Types
+// ============================================================================
+
+export type TemplateCategory = 'government-portal' | 'api-service' | 'cms' | 'custom';
+
+export interface CheckTemplate {
+  id: number;
+  name: string;
+  description: string | null;
+  category: TemplateCategory | null;
+  check_mode: CheckMode;
+  expected_status: number;
+  allowed_status_codes: string | null;  // JSON
+  json_path: string | null;
+  expected_json_value: string | null;
+  text_match: string | null;
+  default_interval_min: number;
+  is_system_template: number;
+  usage_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateTemplatePayload {
+  name: string;
+  description?: string;
+  category?: TemplateCategory;
+  check_mode: CheckMode;
+  expected_status?: number;
+  allowed_status_codes?: number[];
+  json_path?: string;
+  expected_json_value?: string;
+  text_match?: string;
+  default_interval_min?: number;
+}
+
+export interface TargetTemplateMapping {
+  id: number;
+  target_id: number;
+  template_id: number;
+  applied_at: number;
+}
+
+export interface ApplyTemplatePayload {
+  template_id: number;
+}
+
+// ============================================================================
+// GDPR Compliance Types
+// ============================================================================
+
+export interface RetentionPolicy {
+  id: number;
+  checks_retention_days: number;
+  failed_checks_retention_days: number;
+  audit_log_retention_days: number;
+  alert_history_retention_days: number;
+  auto_cleanup_enabled: number;
+  last_cleanup_at: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface UpdateRetentionPolicyPayload {
+  checks_retention_days?: number;
+  failed_checks_retention_days?: number;
+  audit_log_retention_days?: number;
+  alert_history_retention_days?: number;
+  auto_cleanup_enabled?: boolean;
+}
+
+export type DataExportType = 'full' | 'targets' | 'checks' | 'alerts' | 'audit';
+export type ExportStatus = 'pending' | 'processing' | 'completed' | 'failed';
+export type ExportFormat = 'json' | 'csv';
+
+export interface DataExportRequest {
+  id: number;
+  request_type: DataExportType;
+  status: ExportStatus;
+  target_ids: string | null;  // JSON
+  date_range_start: number | null;
+  date_range_end: number | null;
+  export_url: string | null;
+  export_size_bytes: number | null;
+  export_format: ExportFormat;
+  export_filename: string | null;
+  requested_by: string | null;
+  ip_address: string | null;
+  created_at: number;
+  completed_at: number | null;
+  error_message: string | null;
+}
+
+export interface CreateExportRequestPayload {
+  request_type: DataExportType;
+  target_ids?: number[];
+  date_range_start?: number;
+  date_range_end?: number;
+  export_format?: ExportFormat;
+}
+
+export interface GdprConsent {
+  id: number;
+  user_identifier: string;
+  analytics_consent: number;
+  marketing_consent: number;
+  data_processing_consent: number;
+  consent_given_at: number;
+  consent_withdrawn_at: number | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export type DeletionScope = 'target' | 'state' | 'all_checks' | 'user_data';
+export type DeletionStatus = 'pending' | 'approved' | 'processing' | 'completed' | 'rejected';
+
+export interface DataDeletionRequest {
+  id: number;
+  deletion_scope: DeletionScope;
+  target_id: number | null;
+  state: string | null;
+  user_identifier: string | null;
+  status: DeletionStatus;
+  requested_by: string;
+  approved_by: string | null;
+  rejection_reason: string | null;
+  deleted_targets_count: number;
+  deleted_checks_count: number;
+  deleted_alerts_count: number;
+  deleted_audit_logs_count: number;
+  created_at: number;
+  approved_at: number | null;
+  completed_at: number | null;
+}
+
+export interface CreateDeletionRequestPayload {
+  deletion_scope: DeletionScope;
+  target_id?: number;
+  state?: string;
+  user_identifier?: string;
+}
+
+export interface DeletionResult {
+  targets_deleted: number;
+  checks_deleted: number;
+  alerts_deleted: number;
+  audit_logs_deleted: number;
+}
+
+export interface CleanupReport {
+  checks_deleted: number;
+  failed_checks_deleted: number;
+  audit_logs_deleted: number;
+  alerts_deleted: number;
+  total_deleted: number;
+  execution_time_ms: number;
+}
