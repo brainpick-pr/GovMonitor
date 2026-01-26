@@ -56,28 +56,39 @@ ON checks(target_id, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_checks_ts
 ON checks(ts DESC);
 
+-- Additional indexes for performance
+CREATE INDEX IF NOT EXISTS idx_checks_ok
+ON checks(ok);
+
+CREATE INDEX IF NOT EXISTS idx_targets_state
+ON targets(state) WHERE state IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_targets_enabled_state
+ON targets(enabled, state) WHERE enabled = 1;
+
 -- View for latest status (most recent check per target)
+-- Optimized with window functions for better performance
 CREATE VIEW IF NOT EXISTS latest_status AS
+WITH ranked_checks AS (
+  SELECT
+    c.*,
+    ROW_NUMBER() OVER (PARTITION BY c.target_id ORDER BY c.ts DESC) as rn
+  FROM checks c
+)
 SELECT
-    t.id,
-    t.name,
-    t.url,
-    t.hostname,
-    t.state,
-    t.enabled,
-    c.ts,
-    c.ok,
-    c.status,
-    c.latency_ms,
-    c.error
+  t.id,
+  t.name,
+  t.url,
+  t.hostname,
+  t.state,
+  t.enabled,
+  rc.ts,
+  rc.ok,
+  rc.status,
+  rc.latency_ms,
+  rc.error
 FROM targets t
-LEFT JOIN checks c ON t.id = c.target_id
-WHERE c.id = (
-    SELECT id FROM checks
-    WHERE target_id = t.id
-    ORDER BY ts DESC
-    LIMIT 1
-);
+LEFT JOIN ranked_checks rc ON t.id = rc.target_id AND rc.rn = 1;
 
 -- View for uptime statistics (24h)
 CREATE VIEW IF NOT EXISTS uptime_24h AS

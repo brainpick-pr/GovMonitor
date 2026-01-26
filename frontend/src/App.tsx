@@ -5,6 +5,8 @@ import { StateDashboard } from "./components/StateDashboard"
 import { TargetDetail } from "./components/TargetDetail"
 import { LandingPage } from "./components/LandingPage"
 import { Button } from "./components/ui/button"
+import { Toaster } from "./components/ui/toaster"
+import { useToast } from "./components/ui/use-toast"
 import { Plus, RefreshCw, Activity, Map, Home } from "lucide-react"
 
 interface Target {
@@ -26,18 +28,29 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [addingTarget, setAddingTarget] = useState(false)
   const [view, setView] = useState<"landing" | "targets" | "dashboard" | "detail">("landing")
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
 
+  const { toast } = useToast()
   const apiUrl = import.meta.env.VITE_API_URL || "/api"
 
   const fetchStatus = async () => {
     try {
       const response = await fetch(`${apiUrl}/status`)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
       const data = await response.json()
       setTargets(data)
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error"
       console.error("Failed to fetch status:", error)
+      toast({
+        variant: "destructive",
+        title: "Failed to load data",
+        description: message,
+      })
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -47,8 +60,8 @@ function App() {
   useEffect(() => {
     fetchStatus()
 
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchStatus, 30000)
+    // Auto-refresh every 2 minutes
+    const interval = setInterval(fetchStatus, 120000)
     return () => clearInterval(interval)
   }, [])
 
@@ -63,28 +76,48 @@ function App() {
     expectedJsonValue?: string,
     textMatch?: string
   ) => {
-    const response = await fetch(`${apiUrl}/targets`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        url,
-        interval_min: interval,
-        state,
-        check_mode: checkMode,
-        expected_status: expectedStatus,
-        json_path: jsonPath,
-        expected_json_value: expectedJsonValue,
-        text_match: textMatch,
-      }),
-    })
+    setAddingTarget(true)
+    try {
+      const response = await fetch(`${apiUrl}/targets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          url,
+          interval_min: interval,
+          state,
+          check_mode: checkMode,
+          expected_status: expectedStatus,
+          json_path: jsonPath,
+          expected_json_value: expectedJsonValue,
+          text_match: textMatch,
+        }),
+      })
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || "Failed to add target")
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to add target")
+      }
+
+      toast({
+        variant: "success",
+        title: "Website added successfully!",
+        description: `${name} is now being monitored.`,
+      })
+
+      setAddDialogOpen(false)
+      await fetchStatus()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error"
+      toast({
+        variant: "destructive",
+        title: "Failed to add website",
+        description: message,
+      })
+      throw error
+    } finally {
+      setAddingTarget(false)
     }
-
-    await fetchStatus()
   }
 
   const handleRefresh = () => {
@@ -283,6 +316,9 @@ function App() {
         onOpenChange={setAddDialogOpen}
         onAdd={handleAddTarget}
       />
+
+      {/* Toast Notifications */}
+      <Toaster />
     </div>
   )
 }

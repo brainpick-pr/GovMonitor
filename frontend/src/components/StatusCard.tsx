@@ -26,11 +26,28 @@ export function StatusCard({ target, onClick }: StatusCardProps) {
   const hasData = timestamp != null
   const lastCheckedAt = hasData ? new Date(timestamp * 1000) : null
 
+  const statusText = isUp ? "Online" : "Down"
+  const ariaLabel = `${target.name}, ${statusText}${
+    target.state ? `, ${target.state}` : ""
+  }${target.latency_ms ? `, ${target.latency_ms} milliseconds latency` : ""}. Click to view details.`
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onClick?.()
+    }
+  }
+
   return (
-    <Card
-      className="cursor-pointer transition-all hover:shadow-md"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
+      aria-label={ariaLabel}
+      className="cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg transition-all"
     >
+      <Card className="transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex flex-col">
           <CardTitle className="text-sm font-medium">
@@ -89,5 +106,6 @@ export function StatusCard({ target, onClick }: StatusCardProps) {
         </div>
       </CardContent>
     </Card>
+    </div>
   )
 }

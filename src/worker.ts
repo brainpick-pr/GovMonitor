@@ -39,6 +39,20 @@ interface CheckResult {
   validation_details?: string;
 }
 
+interface CachedStatus {
+  id: number;
+  name: string;
+  url: string;
+  hostname: string;
+  state: string | null;
+  enabled: number;
+  ts: number | null;
+  ok: number | null;
+  status: number | null;
+  latency_ms: number | null;
+  error: string | null;
+}
+
 type AddTargetPayload = {
   name: string;
   url: string;
@@ -92,6 +106,45 @@ const INDIAN_STATES = [
 ] as const;
 
 const VALID_STATES = new Set(INDIAN_STATES.map(state => state.toLowerCase()));
+
+// Validation constants
+const VALIDATION = {
+  MAX_NAME_LENGTH: 100,
+  MAX_URL_LENGTH: 2048,
+  MIN_INTERVAL: 5,
+  MAX_INTERVAL: 1440, // 24 hours in minutes
+  BATCH_SIZE: 25,
+  CACHE_TTL: 60,
+  FETCH_TIMEOUT: 5000,
+  VALID_CHECK_MODES: new Set<CheckMode>(['website', 'api-json', 'api-text']),
+} as const;
+
+// Type guard for cached status data
+function isValidStatusArray(data: unknown): data is CachedStatus[] {
+  if (!Array.isArray(data)) {
+    return false;
+  }
+
+  return data.every(item => {
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+
+    return (
+      typeof item.id === 'number' &&
+      typeof item.name === 'string' &&
+      typeof item.url === 'string' &&
+      typeof item.hostname === 'string' &&
+      (item.state === null || typeof item.state === 'string') &&
+      typeof item.enabled === 'number' &&
+      (item.ts === null || typeof item.ts === 'number') &&
+      (item.ok === null || typeof item.ok === 'number') &&
+      (item.status === null || typeof item.status === 'number') &&
+      (item.latency_ms === null || typeof item.latency_ms === 'number') &&
+      (item.error === null || typeof item.error === 'string')
+    );
+  });
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -222,11 +275,8 @@ export default {
 
 async function handleGetStatus(env: Env, headers: Record<string, string>): Promise<Response> {
   // Try KV first for fast response
-  const cached = await env.KV.get('latest_status', 'json') as unknown;
-  if (
-    Array.isArray(cached) &&
-    cached.every(item => item && (typeof item.state === 'string' || item.state === null))
-  ) {
+  const cached = await env.KV.get('latest_status', 'json');
+  if (isValidStatusArray(cached)) {
     return new Response(JSON.stringify(cached), { headers });
   }
 
@@ -306,29 +356,52 @@ async function handleAddTarget(
   headers: Record<string, string>
 ): Promise<Response> {
   const body = await request.json() as AddTargetPayload;
-  const state = (body.state || '').trim();
 
-  if (!body.name || !body.url) {
+  // Validate name
+  const name = (body.name || '').trim();
+  if (!name) {
     return new Response(
-      JSON.stringify({ error: 'name and url are required' }),
+      JSON.stringify({ error: 'Name is required' }),
       { status: 400, headers }
     );
   }
-
-  if (!state || !VALID_STATES.has(state.toLowerCase())) {
+  if (name.length > VALIDATION.MAX_NAME_LENGTH) {
     return new Response(
-      JSON.stringify({ error: 'A valid Indian state or union territory is required' }),
+      JSON.stringify({ error: `Name must be ${VALIDATION.MAX_NAME_LENGTH} characters or less` }),
       { status: 400, headers }
     );
   }
 
   // Validate URL
+  const url = (body.url || '').trim();
+  if (!url) {
+    return new Response(
+      JSON.stringify({ error: 'URL is required' }),
+      { status: 400, headers }
+    );
+  }
+  if (url.length > VALIDATION.MAX_URL_LENGTH) {
+    return new Response(
+      JSON.stringify({ error: `URL must be ${VALIDATION.MAX_URL_LENGTH} characters or less` }),
+      { status: 400, headers }
+    );
+  }
+
   let parsedUrl: URL;
   try {
-    parsedUrl = new URL(body.url);
+    parsedUrl = new URL(url);
   } catch {
     return new Response(
       JSON.stringify({ error: 'Invalid URL format' }),
+      { status: 400, headers }
+    );
+  }
+
+  // Validate state
+  const state = (body.state || '').trim();
+  if (!state || !VALID_STATES.has(state.toLowerCase())) {
+    return new Response(
+      JSON.stringify({ error: 'A valid Indian state or union territory is required' }),
       { status: 400, headers }
     );
   }
@@ -349,8 +422,28 @@ async function handleAddTarget(
     );
   }
 
+  // Validate interval
   const interval = body.interval_min || 15;
+  if (interval < VALIDATION.MIN_INTERVAL || interval > VALIDATION.MAX_INTERVAL) {
+    return new Response(
+      JSON.stringify({
+        error: `Interval must be between ${VALIDATION.MIN_INTERVAL} and ${VALIDATION.MAX_INTERVAL} minutes`
+      }),
+      { status: 400, headers }
+    );
+  }
+
+  // Validate check mode
   const checkMode = body.check_mode || 'website';
+  if (!VALIDATION.VALID_CHECK_MODES.has(checkMode)) {
+    return new Response(
+      JSON.stringify({
+        error: `Invalid check_mode. Must be one of: ${Array.from(VALIDATION.VALID_CHECK_MODES).join(', ')}`
+      }),
+      { status: 400, headers }
+    );
+  }
+
   const expectedStatus = body.expected_status || 200;
   const allowedStatusCodes = body.allowed_status_codes ? JSON.stringify(body.allowed_status_codes) : null;
   const jsonPath = body.json_path || null;
@@ -369,7 +462,7 @@ async function handleAddTarget(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       RETURNING *
     `).bind(
-      body.name, body.url, hostname, state, interval, now,
+      name, url, hostname, state, interval, now,
       checkMode, expectedStatus, allowedStatusCodes,
       jsonPath, expectedJsonValue, textMatch,
       now, now
@@ -466,6 +559,25 @@ async function handleGetStateSummary(
   window: string,
   headers: Record<string, string>
 ): Promise<Response> {
+  // Whitelist of valid view names (SQL injection protection)
+  const VALID_VIEWS = {
+    '24h': 'state_uptime_24h',
+    '7d': 'state_uptime_7d',
+    '30d': 'state_uptime_30d',
+    '365d': 'state_uptime_365d',
+  } as const;
+
+  // Validate window parameter
+  if (!window || !(window in VALID_VIEWS)) {
+    return new Response(
+      JSON.stringify({
+        error: 'Invalid window parameter. Must be one of: 24h, 7d, 30d, 365d'
+      }),
+      { status: 400, headers }
+    );
+  }
+
+  const viewName = VALID_VIEWS[window as keyof typeof VALID_VIEWS];
   const cacheKey = `state_summary_${window}`;
 
   // Try KV cache first
@@ -474,17 +586,7 @@ async function handleGetStateSummary(
     return new Response(JSON.stringify(cached), { headers });
   }
 
-  // Map window to view name
-  const viewMap: Record<string, string> = {
-    '24h': 'state_uptime_24h',
-    '7d': 'state_uptime_7d',
-    '30d': 'state_uptime_30d',
-    '365d': 'state_uptime_365d',
-  };
-
-  const viewName = viewMap[window] || 'state_uptime_24h';
-
-  // Query from D1
+  // Query from D1 (viewName is guaranteed to be from whitelist)
   const result = await env.DB.prepare(`SELECT * FROM ${viewName} ORDER BY state`).all();
   const data = result.results || [];
 
