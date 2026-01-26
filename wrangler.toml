@@ -37,6 +37,24 @@ USER_AGENT = "GovMonitorBot/1.0 (+https://govmonitor.org)"
 TIMEOUT_MS = "5000"
 MAX_LATENCY_MS = "10000"
 
+# Authentication configuration
+REQUIRE_AUTH_FOR_READS = "false"  # Set to "true" to require auth for GET requests
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# These are NOT stored in this file - use wrangler CLI to set them:
+#
+# Primary API key (for general administrative access):
+#   wrangler secret put API_KEY
+#
+# Admin API keys (comma-separated, for key management):
+#   wrangler secret put ADMIN_API_KEYS
+#
+# Read-only API keys (comma-separated, for monitoring access):
+#   wrangler secret put READ_ONLY_API_KEYS
+#
+# Example usage:
+#   curl -H "Authorization: Bearer YOUR_API_KEY" https://api.govmonitor.org/api/targets
+
 # Build configuration
 [build]
 command = "npm install && npm run build"

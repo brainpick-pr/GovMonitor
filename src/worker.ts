@@ -7,6 +7,7 @@
 
 import type { Env, Target } from './types';
 import { VALIDATION } from './constants';
+import { requireAuth } from './auth';
 import { handleGetStatus } from './handlers/status';
 import { handleGetHistory } from './handlers/history';
 import { handleGetTargets, handleAddTarget, handleDeleteTarget } from './handlers/targets';
@@ -21,6 +22,14 @@ import {
   handleAddAlertChannel,
   handleDeleteAlertChannel
 } from './handlers/alerts';
+import {
+  handleListApiKeys,
+  handleCreateApiKey,
+  handleRevokeApiKey,
+  handleUpdateApiKey,
+  handleRotateApiKey,
+  handleGetAuditLog
+} from './handlers/auth';
 import { runBackfillCheck } from './checks/backfill';
 import { checkTarget } from './checks/checker';
 
@@ -32,12 +41,23 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Content-Type': 'application/json',
     };
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // Authentication check
+    const authError = await requireAuth(request, env);
+    if (authError) {
+      // Merge CORS headers with auth error response
+      const authResponse = new Response(authError.body, {
+        status: authError.status,
+        headers: { ...corsHeaders, ...Object.fromEntries(authError.headers) }
+      });
+      return authResponse;
     }
 
     try {
@@ -108,6 +128,34 @@ export default {
       if (url.pathname.startsWith('/api/alerts/channels/') && request.method === 'DELETE') {
         const channelId = url.pathname.split('/')[4];
         return await handleDeleteAlertChannel(env, channelId, corsHeaders);
+      }
+
+      // Authentication API routes (admin only)
+      if (url.pathname === '/api/auth/keys' && request.method === 'GET') {
+        return await handleListApiKeys(env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/auth/keys' && request.method === 'POST') {
+        return await handleCreateApiKey(request, env, corsHeaders);
+      }
+
+      if (url.pathname.startsWith('/api/auth/keys/') && request.method === 'DELETE') {
+        const keyId = url.pathname.split('/')[4];
+        return await handleRevokeApiKey(keyId, env, corsHeaders);
+      }
+
+      if (url.pathname.startsWith('/api/auth/keys/') && request.method === 'PUT') {
+        const keyId = url.pathname.split('/')[4];
+        return await handleUpdateApiKey(keyId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/auth\/keys\/\d+\/rotate$/) && request.method === 'POST') {
+        const keyId = url.pathname.split('/')[4];
+        return await handleRotateApiKey(keyId, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/auth/audit' && request.method === 'GET') {
+        return await handleGetAuditLog(env, url.searchParams, corsHeaders);
       }
 
       return new Response('Not Found', { status: 404, headers: corsHeaders });

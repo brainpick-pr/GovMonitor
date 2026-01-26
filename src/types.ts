@@ -9,6 +9,12 @@ export interface Env {
   USER_AGENT: string;
   TIMEOUT_MS: string;
   MAX_LATENCY_MS: string;
+
+  // Authentication
+  API_KEY?: string;              // Primary API key
+  ADMIN_API_KEYS?: string;       // Comma-separated admin keys
+  READ_ONLY_API_KEYS?: string;   // Comma-separated read-only keys
+  REQUIRE_AUTH_FOR_READS?: string; // "true" | "false"
 }
 
 export type CheckMode = 'website' | 'api-json' | 'api-text';
@@ -120,4 +126,31 @@ export interface AlertCondition {
   shouldTrigger: boolean;
   message: string;
   metadata: Record<string, any>;
+}
+
+// Authentication types
+export type ApiKeyScope = 'admin' | 'write' | 'read';
+
+export interface ApiKeyRecord {
+  id: number;
+  name: string;
+  scope: ApiKeyScope;
+  enabled: number;
+  rate_limit: number;
+  last_used_at: number | null;
+  expires_at: number | null;
+}
+
+export interface AuthResult {
+  authenticated: boolean;
+  apiKeyId?: number;
+  scope?: ApiKeyScope;
+  error?: string;
+}
+
+export interface CreateApiKeyPayload {
+  name: string;
+  scope: ApiKeyScope;
+  rate_limit?: number;
+  expires_at?: number;
 }

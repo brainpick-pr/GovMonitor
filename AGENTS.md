@@ -13,15 +13,16 @@
 3. [Development Workflow](#development-workflow)
 4. [Code Conventions](#code-conventions)
 5. [Database Schema](#database-schema)
-6. [API Endpoints](#api-endpoints)
-7. [Check Modes](#check-modes)
-8. [Caching Strategy](#caching-strategy)
-9. [Frontend Architecture](#frontend-architecture)
-10. [Testing Guidelines](#testing-guidelines)
-11. [Common Tasks](#common-tasks)
-12. [Important Constraints](#important-constraints)
-13. [Deployment Notes](#deployment-notes)
-14. [Troubleshooting](#troubleshooting)
+6. [Authentication](#authentication)
+7. [API Endpoints](#api-endpoints)
+8. [Check Modes](#check-modes)
+9. [Caching Strategy](#caching-strategy)
+10. [Frontend Architecture](#frontend-architecture)
+11. [Testing Guidelines](#testing-guidelines)
+12. [Common Tasks](#common-tasks)
+13. [Important Constraints](#important-constraints)
+14. [Deployment Notes](#deployment-notes)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -599,9 +600,327 @@ GROUP BY t.state;
 
 ---
 
+## Authentication
+
+### Overview
+
+GovMonitor.Org uses **API key-based authentication** to protect administrative endpoints while keeping read operations public by default. The system supports two authentication phases:
+
+**Phase 1: Environment-Based Keys**
+- API keys stored as Cloudflare secrets
+- Simple setup for single-user scenarios
+- Fast validation (no database queries)
+
+**Phase 2: Database-Backed Keys**
+- API keys stored in D1 database with metadata
+- Multi-user support with scopes (admin/write/read)
+- Rate limiting, audit logging, key rotation
+- Detailed usage tracking
+
+### File Structure
+
+```
+src/
+├── auth.ts                  # Authentication middleware
+├── types.ts                 # Auth-related types (ApiKeyRecord, AuthResult)
+├── handlers/auth.ts         # API key management endpoints
+└── worker.ts                # Middleware integration
+
+migrations/
+└── 004_add_auth.sql         # Database schema for API keys and audit log
+
+test/
+└── auth.test.ts             # Authentication tests
+```
+
+### Protected vs Public Endpoints
+
+**Protected Endpoints (Require API Key):**
+- All write operations: `POST`, `PUT`, `DELETE`
+- Examples:
+  - `POST /api/targets` - Add monitoring target
+  - `DELETE /api/targets/:id` - Remove target
+  - `PUT /api/config` - Update configuration
+  - `POST /api/check` - Manual check trigger
+  - `POST /api/auth/keys` - Create API key (admin only)
+
+**Public Endpoints (No Auth Required by Default):**
+- All read operations: `GET`
+- Examples:
+  - `GET /api/status` - Current uptime status
+  - `GET /api/history` - Historical data
+  - `GET /api/targets` - List monitoring targets
+  - `GET /api/state-summary` - State aggregations
+
+**Optional:** Set `REQUIRE_AUTH_FOR_READS = "true"` to protect read endpoints.
+
+### Quick Setup
+
+#### 1. Set API Key Secret
+
+```bash
+# Generate secure random key
+openssl rand -base64 32
+
+# Set as Cloudflare secret
+wrangler secret put API_KEY
+# Paste the generated key when prompted
+```
+
+#### 2. Run Database Migration
+
+```bash
+# Local development
+wrangler d1 execute govmonitor-db --local --file=migrations/004_add_auth.sql
+
+# Production
+wrangler d1 execute govmonitor-db --file=migrations/004_add_auth.sql
+```
+
+#### 3. Test Authentication
+
+```bash
+# Public read (no auth required)
+curl http://localhost:8787/api/status
+
+# Protected write (requires auth)
+curl -X POST http://localhost:8787/api/targets \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Test","url":"https://example.gov","state":"Delhi"}'
+```
+
+### Database Schema (Phase 2)
+
+#### `api_keys` Table
+
+```sql
+CREATE TABLE api_keys (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,              -- "Admin Dashboard", "CI/CD Pipeline"
+    key_hash TEXT NOT NULL UNIQUE,   -- SHA-256 hash of API key
+    scope TEXT NOT NULL DEFAULT 'read', -- 'admin' | 'write' | 'read'
+    enabled INTEGER NOT NULL DEFAULT 1,
+    rate_limit INTEGER DEFAULT 1000, -- Requests per hour
+    last_used_at INTEGER,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+    expires_at INTEGER               -- Optional expiration
+);
+```
+
+#### `auth_audit_log` Table
+
+```sql
+CREATE TABLE auth_audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_key_id INTEGER,              -- NULL for failed attempts
+    endpoint TEXT NOT NULL,
+    method TEXT NOT NULL,
+    ip_address TEXT,
+    user_agent TEXT,
+    success INTEGER NOT NULL,        -- 1=success, 0=failure
+    error_message TEXT,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+```
+
+### API Key Scopes
+
+| Scope | Permissions |
+|-------|-------------|
+| `admin` | Full access (CRUD + key management) |
+| `write` | Create and update (no delete, no key management) |
+| `read` | Read-only (GET endpoints only) |
+
+### Authentication Flow
+
+```
+1. Request arrives at worker
+   ↓
+2. Worker calls requireAuth(request, env)
+   ↓
+3. Check if endpoint requires auth (based on method + path)
+   ↓
+4. Extract Bearer token from Authorization header
+   ↓
+5. Validate token:
+   - Phase 1: Check against env.API_KEY / env.ADMIN_API_KEYS
+   - Phase 2: Hash token and query database
+   ↓
+6. If database key:
+   - Check scope permissions
+   - Check rate limit (KV-based)
+   - Check expiration
+   - Log audit entry
+   ↓
+7. Return null (authenticated) or error Response (401/403/429)
+```
+
+### Middleware Functions
+
+**`src/auth.ts`:**
+```typescript
+// Check if endpoint requires authentication
+requiresAuth(pathname: string, method: string, env: Env): boolean
+
+// Main authentication middleware (returns error Response or null)
+requireAuth(request: Request, env: Env): Promise<Response | null>
+
+// Generate cryptographically secure API key
+generateApiKey(): Promise<string>
+
+// Hash API key for database storage
+hashApiKey(key: string): Promise<string>
+```
+
+### Managing API Keys
+
+#### Create New Key
+
+```bash
+POST /api/auth/keys
+Authorization: Bearer ADMIN_KEY
+Content-Type: application/json
+
+{
+  "name": "Production Admin Key",
+  "scope": "admin",
+  "rate_limit": 5000,
+  "expires_at": null
+}
+
+# Response includes plaintext key (ONLY SHOWN ONCE!)
+{
+  "api_key": "mKz8pQ3vN2xR7wL5tH9jC1...",
+  "warning": "Save this key now! It will not be shown again."
+}
+```
+
+#### List Keys
+
+```bash
+GET /api/auth/keys
+Authorization: Bearer ADMIN_KEY
+
+# Response: Array of API key records (without key_hash)
+```
+
+#### Revoke Key
+
+```bash
+DELETE /api/auth/keys/1
+Authorization: Bearer ADMIN_KEY
+
+# Soft delete - sets enabled=0
+```
+
+#### Rotate Key
+
+```bash
+POST /api/auth/keys/1/rotate
+Authorization: Bearer ADMIN_KEY
+
+# Generates new key, invalidates old one
+# Response includes new plaintext key
+```
+
+### Rate Limiting
+
+- Implemented using Cloudflare KV
+- Key format: `RATE_LIMIT:{api_key_id}:{hour}`
+- Default: 1000 requests/hour per key
+- Returns `429 Too Many Requests` when exceeded
+- Resets every hour automatically (TTL-based)
+
+### Audit Logging
+
+All authentication attempts are logged to `auth_audit_log`:
+
+```bash
+GET /api/auth/audit?limit=100&success=0
+Authorization: Bearer ADMIN_KEY
+
+# Returns failed authentication attempts for security monitoring
+```
+
+### Security Features
+
+1. **SHA-256 Key Hashing**: Keys stored as hashes, never plaintext
+2. **Rate Limiting**: Prevents brute force attacks
+3. **Audit Logging**: Track all authentication attempts
+4. **Key Expiration**: Optional expiration timestamps
+5. **Scope-Based Authorization**: Fine-grained permissions
+6. **HTTPS Only**: Enforced in production
+7. **Last Used Tracking**: Monitor key usage patterns
+
+### Environment Variables
+
+```toml
+# wrangler.toml
+[vars]
+REQUIRE_AUTH_FOR_READS = "false"  # "true" to protect read endpoints
+
+# Secrets (set via: wrangler secret put)
+# API_KEY = "primary-key-here"
+# ADMIN_API_KEYS = "admin-key-1,admin-key-2"
+# READ_ONLY_API_KEYS = "readonly-key-1"
+```
+
+### Testing
+
+**Unit tests:** `test/auth.test.ts`
+
+```bash
+npm run test -- auth.test.ts
+```
+
+**Integration testing:**
+```bash
+# Start worker
+npm run dev
+
+# Test public endpoint
+curl http://localhost:8787/api/status
+
+# Test protected endpoint without auth (should fail)
+curl -X POST http://localhost:8787/api/targets -d '{...}'
+
+# Test protected endpoint with auth (should succeed)
+curl -X POST http://localhost:8787/api/targets \
+  -H "Authorization: Bearer dev-test-key-12345" -d '{...}'
+```
+
+### Common Issues
+
+**401 Unauthorized:**
+- Missing `Authorization` header
+- Malformed header (use `Bearer TOKEN` format)
+
+**403 Forbidden:**
+- Invalid API key
+- Key disabled or expired
+- Insufficient scope permissions
+
+**429 Too Many Requests:**
+- Rate limit exceeded
+- Wait for next hour or increase limit
+
+### Documentation
+
+See [`AUTHENTICATION.md`](AUTHENTICATION.md) for comprehensive guide including:
+- Detailed setup instructions
+- Security best practices
+- Key rotation procedures
+- Troubleshooting guide
+- Migration from no-auth deployments
+
+---
+
 ## API Endpoints
 
 All endpoints are prefixed with `/api/`.
+
+**Authentication Required:** See [Authentication](#authentication) section above for protected endpoints.
 
 ### `GET /api/status`
 **Description:** Returns current status of all targets (latest check per target)
