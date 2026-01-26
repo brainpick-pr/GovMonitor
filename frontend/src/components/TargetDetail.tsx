@@ -148,7 +148,7 @@ function HistoryCharts({
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground">Uptime</div>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               {uptimePercentage}%
             </div>
           </CardContent>
@@ -162,7 +162,7 @@ function HistoryCharts({
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground">Successful</div>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
               {successfulChecks}
             </div>
           </CardContent>
@@ -256,8 +256,8 @@ function HistoryCharts({
                 <Area
                   type="stepAfter"
                   dataKey="status"
-                  stroke="#10b981"
-                  fill="#10b981"
+                  stroke="rgb(34 197 94)"
+                  fill="rgb(34 197 94)"
                   fillOpacity={0.3}
                 />
               </AreaChart>

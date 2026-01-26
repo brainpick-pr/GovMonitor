@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { IndiaMapOptimized } from "./IndiaMapOptimized"
-import { RefreshCw } from "lucide-react"
+import { RefreshCw, X } from "lucide-react"
 import { Button } from "./ui/button"
 
 interface StateStats {
@@ -24,6 +24,7 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [window, setWindow] = useState<TimeWindow>("24h")
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedState, setSelectedState] = useState<string | null>(null)
 
   const fetchStateSummary = async () => {
     try {
@@ -48,7 +49,11 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
     fetchStateSummary()
   }
 
-  const sortedStates = [...stateData].sort((a, b) => {
+  const filteredStates = selectedState
+    ? stateData.filter((s) => s.state === selectedState)
+    : stateData
+
+  const sortedStates = [...filteredStates].sort((a, b) => {
     return b.uptime_percentage - a.uptime_percentage
   })
 
@@ -102,14 +107,50 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
         <>
           {/* Map Visualization */}
           <div className="bg-card rounded-lg border p-6">
-            <h3 className="text-lg font-semibold mb-4">India Map - Uptime by State</h3>
-            <IndiaMapOptimized stateData={stateData} />
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">India Map - Uptime by State</h3>
+              {selectedState && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedState(null)}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filter: {selectedState}
+                </Button>
+              )}
+            </div>
+            <IndiaMapOptimized
+              stateData={stateData}
+              selectedState={selectedState}
+              onStateClick={(state) =>
+                setSelectedState(state === selectedState ? null : state)
+              }
+            />
           </div>
 
           {/* State Statistics Table */}
           <div className="bg-card rounded-lg border overflow-hidden">
             <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Detailed Statistics</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                  Detailed Statistics
+                  {selectedState && (
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      (Filtered: {selectedState})
+                    </span>
+                  )}
+                </h3>
+                {selectedState && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedState(null)}
+                  >
+                    Show All States
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -132,14 +173,14 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
                         <span
                           className={`font-semibold ${
                             state.uptime_percentage >= 99
-                              ? "text-green-600"
+                              ? "text-green-600 dark:text-green-400"
                               : state.uptime_percentage >= 95
-                              ? "text-lime-600"
+                              ? "text-lime-600 dark:text-lime-400"
                               : state.uptime_percentage >= 90
-                              ? "text-yellow-600"
+                              ? "text-yellow-600 dark:text-yellow-400"
                               : state.uptime_percentage >= 80
-                              ? "text-orange-600"
-                              : "text-red-600"
+                              ? "text-orange-600 dark:text-orange-400"
+                              : "text-red-600 dark:text-red-400"
                           }`}
                         >
                           {state.uptime_percentage.toFixed(2)}%
@@ -147,10 +188,10 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
                       </td>
                       <td className="px-4 py-3 text-sm text-right">{state.total_targets}</td>
                       <td className="px-4 py-3 text-sm text-right">{state.total_checks}</td>
-                      <td className="px-4 py-3 text-sm text-right text-green-600">
+                      <td className="px-4 py-3 text-sm text-right text-green-600 dark:text-green-400">
                         {state.successful_checks}
                       </td>
-                      <td className="px-4 py-3 text-sm text-right text-red-600">
+                      <td className="px-4 py-3 text-sm text-right text-red-600 dark:text-red-400">
                         {state.failed_checks}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
@@ -166,28 +207,30 @@ export function StateDashboard({ apiUrl }: StateDashboardProps) {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-card rounded-lg border p-4">
-              <div className="text-sm text-muted-foreground">Total States</div>
-              <div className="text-2xl font-bold mt-1">{stateData.length}</div>
+              <div className="text-sm text-muted-foreground">
+                {selectedState ? "Selected State" : "Total States"}
+              </div>
+              <div className="text-2xl font-bold mt-1">{filteredStates.length}</div>
             </div>
             <div className="bg-card rounded-lg border p-4">
               <div className="text-sm text-muted-foreground">Total Targets</div>
               <div className="text-2xl font-bold mt-1">
-                {stateData.reduce((sum, s) => sum + s.total_targets, 0)}
+                {filteredStates.reduce((sum, s) => sum + s.total_targets, 0)}
               </div>
             </div>
             <div className="bg-card rounded-lg border p-4">
               <div className="text-sm text-muted-foreground">Total Checks</div>
               <div className="text-2xl font-bold mt-1">
-                {stateData.reduce((sum, s) => sum + s.total_checks, 0)}
+                {filteredStates.reduce((sum, s) => sum + s.total_checks, 0)}
               </div>
             </div>
             <div className="bg-card rounded-lg border p-4">
               <div className="text-sm text-muted-foreground">Average Uptime</div>
               <div className="text-2xl font-bold mt-1">
-                {stateData.length > 0
+                {filteredStates.length > 0
                   ? (
-                      stateData.reduce((sum, s) => sum + s.uptime_percentage, 0) /
-                      stateData.length
+                      filteredStates.reduce((sum, s) => sum + s.uptime_percentage, 0) /
+                      filteredStates.length
                     ).toFixed(2)
                   : "0"}
                 %

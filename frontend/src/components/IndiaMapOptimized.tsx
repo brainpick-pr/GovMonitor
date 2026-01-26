@@ -13,9 +13,11 @@ interface StateStats {
 
 interface IndiaMapProps {
   stateData: StateStats[]
+  selectedState?: string | null
+  onStateClick?: (state: string) => void
 }
 
-export function IndiaMapOptimized({ stateData }: IndiaMapProps) {
+export function IndiaMapOptimized({ stateData, selectedState, onStateClick }: IndiaMapProps) {
   const stateDataMap = useMemo(() => {
     return stateData.reduce<Record<string, StateStats>>((acc, data) => {
       acc[data.state] = data
@@ -51,23 +53,28 @@ export function IndiaMapOptimized({ stateData }: IndiaMapProps) {
         xmlns="http://www.w3.org/2000/svg"
       >
         <g id="india-map">
-          {Object.entries(INDIA_SVG_PATHS).map(([stateName, path]) => (
-            <g key={stateName}>
-              <path
-                d={path}
-                fill={getStateColor(stateName)}
-                stroke="#ffffff"
-                strokeWidth="1.5"
-                className="transition-all duration-200 hover:opacity-80 cursor-pointer"
-              >
-                <title>
-                  {stateName}
-                  {"\n"}
-                  {getStateInfo(stateName)}
-                </title>
-              </path>
-            </g>
-          ))}
+          {Object.entries(INDIA_SVG_PATHS).map(([stateName, path]) => {
+            const isSelected = selectedState === stateName
+            return (
+              <g key={stateName}>
+                <path
+                  d={path}
+                  fill={getStateColor(stateName)}
+                  stroke={isSelected ? "#1e40af" : "#ffffff"}
+                  strokeWidth={isSelected ? "3" : "1.5"}
+                  className="transition-all duration-200 hover:opacity-80 cursor-pointer"
+                  onClick={() => onStateClick?.(stateName)}
+                  style={{ filter: isSelected ? "brightness(1.1)" : undefined }}
+                >
+                  <title>
+                    {stateName}
+                    {"\n"}
+                    {getStateInfo(stateName)}
+                  </title>
+                </path>
+              </g>
+            )
+          })}
         </g>
       </svg>
 

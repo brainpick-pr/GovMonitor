@@ -4,6 +4,7 @@ import { AddTargetDialog } from "./components/AddTargetDialog"
 import { StateDashboard } from "./components/StateDashboard"
 import { TargetDetail } from "./components/TargetDetail"
 import { LandingPage } from "./components/LandingPage"
+import { ThemeToggle } from "./components/ThemeToggle"
 import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/toaster"
 import { useToast } from "./components/ui/use-toast"
@@ -28,7 +29,6 @@ function App() {
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [addingTarget, setAddingTarget] = useState(false)
   const [view, setView] = useState<"landing" | "targets" | "dashboard" | "detail">("landing")
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
 
@@ -76,7 +76,6 @@ function App() {
     expectedJsonValue?: string,
     textMatch?: string
   ) => {
-    setAddingTarget(true)
     try {
       const response = await fetch(`${apiUrl}/targets`, {
         method: "POST",
@@ -115,8 +114,6 @@ function App() {
         description: message,
       })
       throw error
-    } finally {
-      setAddingTarget(false)
     }
   }
 
@@ -213,6 +210,7 @@ function App() {
                   </Button>
                 </>
               )}
+              <ThemeToggle />
             </div>
           </div>
         </div>
