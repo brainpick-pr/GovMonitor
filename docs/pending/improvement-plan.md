@@ -1,37 +1,105 @@
 # Improvement Plan
 
-This roadmap captures upcoming work to extend GovMonitor.Org’s monitoring capabilities while staying aligned with the Cloudflare stack.
+This roadmap captures upcoming work to extend GovMonitor.Org's monitoring capabilities while staying aligned with the Cloudflare stack.
 
-## Worker & Health Checks
+## ✅ Completed Features
 
-- Support multiple check modes (`website`, `api-json`, `api-text`) and capture metadata per target (expected HTTP codes, JSON path/value, substring matches).
-- Use `RequestInit.cf` flags to bypass cache during probes and continue guarding requests with `AbortController` timeouts.
-- Emit structured log entries so Cloudflare Logpush can aggregate check results.
-- Version KV cache keys (e.g., `latest_status:v2`) when enriching payloads to avoid stale schema issues.
+### Worker & Health Checks
+- ✅ Support multiple check modes (`website`, `api-json`, `api-text`) with metadata per target
+- ✅ JSON path validation using dot notation (e.g., "status.health")
+- ✅ Text content matching validation for API responses
+- ✅ Structured logging with JSON format for Cloudflare Logpush integration
+- ✅ Request cache bypass using `cf.cacheTtl: 0` and `AbortController` timeouts
+- ✅ `/api/state-summary` endpoint for precomputed state metrics
 
-## D1 Schema & Aggregation
+### D1 Schema & Aggregation
+- ✅ Enhanced `targets` table with check mode and validation columns
+- ✅ State aggregation views for 24h/7d/30d/365d windows
+- ✅ `state_daily_stats` table for performance optimization
+- ✅ Comprehensive indexing strategy for query performance
+- ✅ Migration system with sequential versioning
 
-- Migrate the `targets` table to include new metadata columns and set defaults for existing rows.
-- Record the interval used for each check to preserve accuracy when custom intervals are configured.
-- Produce per-state aggregates for 24h/7d/30d/365d windows via SQL views or scheduled rollups; cache summaries in KV (`state_stats_today`, `state_stats_7d`, etc.).
-- Expose `/api/state-summary?window=…` for the frontend to consume precomputed metrics.
+### Frontend & UX
+- ✅ Advanced add-target dialog with check mode selection
+- ✅ State dashboard with India choropleth map visualization
+- ✅ Real-time auto-refresh every 30 seconds
+- ✅ View switching between targets grid and state dashboard
+- ✅ State-wise uptime aggregation display
+- ✅ Responsive design with navy blue theme
 
-## Cron Triggers & Automation
+### Caching & Performance
+- ✅ KV caching for latest status (30s TTL)
+- ✅ State summary caching (5-minute TTL)
+- ✅ Optimized database indexes for fast queries
 
-- Allocate cron schedules for health checks, nightly aggregation rollups, and KV cache maintenance.
-- Batch target checks to respect Cloudflare execution limits and retry failed probes without blocking the entire run.
-- Add a catch-up cron job that identifies overdue targets when prior runs were interrupted.
+## 🚧 Future Enhancements
 
-## Frontend & UX
+### Worker & Health Checks
+- **Alert System**: Implement notification system for downtime events (email, webhook, Slack)
+- **Dependency Checks**: Monitor cascading failures between government services
+- **Certificate Monitoring**: Track SSL certificate expiration dates
+- **Performance Thresholds**: Configurable latency and response size thresholds
+- **Geographic Testing**: Test from multiple Cloudflare edge locations
 
-- Expand the add-target dialog with fields for endpoint type, JSON validation, and interval selection.
-- Build state dashboards and detail pages with tabs for 24h/7d/30d/365d metrics, backed by the new APIs.
-- Implement an India choropleth map highlighting per-state uptime and monitored target counts.
-- Provide health-history charts on individual target pages using `/api/history` with larger windows.
+### D1 Schema & Analytics
+- **Historical Data Retention**: Implement data archiving policies for long-term storage
+- **Custom Metrics**: User-defined metrics and dashboards
+- **Trend Analysis**: Automated anomaly detection and trend reporting
+- **Export Features**: CSV/JSON export for compliance and reporting
+- **Backup Automation**: Scheduled D1 exports to R2 storage
 
-## Tooling & Docs
+### Frontend & UX
+- **Target Detail Pages**: Individual target pages with detailed history and charts
+- **Time Range Selection**: Custom date range selectors for historical analysis
+- **Dark Mode**: Theme switching for user preference
+- **Mobile App**: Progressive Web App (PWA) for mobile monitoring
+- **Drill-down Navigation**: Click-to-zoom functionality on state map
 
-- Track D1 schema updates with `wrangler d1 migrations` and document rollout steps (migration, backfill, deploy).
-- Create integration tests (Miniflare or `wrangler dev --test`) that simulate various API responses to verify Worker logic.
-- Update README and internal docs when new settings or deployment steps are introduced.
-- Maintain this VitePress site as a living set of runbooks for operators and contributors.
+### Cron & Automation
+- **Smart Scheduling**: Adaptive check intervals based on target reliability
+- **Maintenance Windows**: Configurable maintenance periods to suppress alerts
+- **Bulk Operations**: Mass target management and configuration updates
+- **Health Check Templates**: Reusable configuration templates for common services
+
+### Security & Compliance
+- **Role-based Access**: User authentication and authorization system
+- **Audit Logging**: Comprehensive audit trail for all configuration changes
+- **Data Privacy**: GDPR compliance features for data handling
+- **API Rate Limiting**: Protect against abuse and ensure fair usage
+
+### Tooling & Operations
+- **Integration Tests**: Comprehensive test suite with Miniflare
+- **Monitoring Dashboard**: Internal monitoring for the monitoring system
+- **Deployment Automation**: CI/CD pipeline with automated testing
+- **Documentation**: API documentation with OpenAPI/Swagger specification
+
+## 📋 Implementation Priority
+
+### High Priority (Next 3 months)
+1. Alert system with multiple notification channels
+2. Target detail pages with historical charts
+3. Custom time range selection
+4. Certificate monitoring
+5. Integration test suite
+
+### Medium Priority (3-6 months)
+1. Role-based access control
+2. Mobile PWA implementation
+3. Advanced analytics and trend detection
+4. Bulk operations interface
+5. Dark mode support
+
+### Low Priority (6+ months)
+1. Geographic testing from multiple edges
+2. Dependency monitoring
+3. Advanced compliance features
+4. Custom metrics framework
+5. API marketplace integrations
+
+## 🔄 Maintenance Tasks
+
+- Regular dependency updates and security patches
+- Performance optimization and query tuning
+- Documentation updates as features evolve
+- Backup and disaster recovery testing
+- User feedback collection and UX improvements

@@ -7,6 +7,7 @@ const config: UserConfig = {
     nav: [
       { text: "Overview", link: "/" },
       { text: "Implementation", link: "/implementation/overview" },
+      { text: "Modules", link: "/modules" },
       { text: "Pending Work", link: "/pending/improvement-plan" },
     ],
     sidebar: {
@@ -18,6 +19,14 @@ const config: UserConfig = {
             { text: "Worker", link: "/implementation/worker" },
             { text: "Frontend", link: "/implementation/frontend" },
             { text: "Data & Storage", link: "/implementation/data" },
+          ],
+        },
+      ],
+      "/modules": [
+        {
+          text: "Module Reference",
+          items: [
+            { text: "All Modules", link: "/modules" },
           ],
         },
       ],
