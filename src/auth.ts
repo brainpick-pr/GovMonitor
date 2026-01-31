@@ -9,6 +9,14 @@
  */
 
 import type { Env, ApiKeyRecord, AuthResult } from './types';
+import {
+  detectThreats,
+  logSecurityEvent,
+  alertSecurityTeam,
+  shouldBlockRequest,
+  trackFailedAuth,
+  clearFailedAuth
+} from './security/threat-detection';
 
 /**
  * Protected endpoint patterns
@@ -26,6 +34,7 @@ const PROTECTED_ENDPOINTS = {
   // Admin-only operations
   admin: [
     '/api/auth/keys',
+    '/api/security',
   ],
 };
 
@@ -342,8 +351,18 @@ export async function requireAuth(request: Request, env: Env): Promise<Response 
     apiKeyRecord = await validateApiKeyFromDB(token, env.DB);
 
     if (!apiKeyRecord) {
+      // Track failed authentication attempt
+      await trackFailedAuth(request, env);
+
       // Log failed attempt (no API key ID)
       await logAuthAttempt(env.DB, null, request, false, 'Invalid API key');
+
+      // Check for credential attack threats
+      const threats = await detectThreats(request, null, env);
+      for (const threat of threats) {
+        await logSecurityEvent(threat, env);
+        await alertSecurityTeam(threat, env);
+      }
 
       return new Response(
         JSON.stringify({
@@ -399,10 +418,39 @@ export async function requireAuth(request: Request, env: Env): Promise<Response 
     // Log successful attempt
     await logAuthAttempt(env.DB, apiKeyRecord.id, request, true);
 
+    // Clear failed auth tracking on success
+    await clearFailedAuth(request, env);
+
     // Update last used timestamp (async, don't wait)
     updateLastUsed(env.DB, apiKeyRecord.id).catch(err =>
       console.error('Failed to update last_used_at:', err)
     );
+
+    // Run threat detection for authenticated requests
+    const threats = await detectThreats(request, apiKeyRecord.id, env);
+
+    // Log and alert on threats
+    for (const threat of threats) {
+      await logSecurityEvent(threat, env);
+      await alertSecurityTeam(threat, env);
+    }
+
+    // Block request if critical threat detected
+    if (shouldBlockRequest(threats)) {
+      const criticalThreat = threats.find(t => t.severity === 'critical');
+      return new Response(
+        JSON.stringify({
+          error: 'Security Alert',
+          message: 'Suspicious activity detected. Access temporarily restricted.',
+          incident_type: criticalThreat?.type,
+          incident_id: Math.random().toString(36).substring(7)
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
   }
 
   // Authentication successful

@@ -14,6 +14,7 @@ import { handleGetTargets, handleAddTarget, handleDeleteTarget } from './handler
 import { handleGetConfig, handleUpdateConfig } from './handlers/config';
 import { handleManualCheck } from './handlers/check';
 import { handleGetStateSummary } from './handlers/state-summary';
+import { handleGetStateDailyUptime, handleGetTenderSites } from './handlers/state-daily';
 import {
   handleGetAlerts,
   handleGetAlertConfig,
@@ -30,6 +31,57 @@ import {
   handleRotateApiKey,
   handleGetAuditLog
 } from './handlers/auth';
+import {
+  handleGoogleAuth,
+  handleGetCurrentUser,
+  handleLogout
+} from './handlers/oauth';
+import {
+  handleListSubmissions,
+  handleCreateSubmission,
+  handleGetMySubmissions,
+  handleGetGuidelines,
+  handleVoteSubmission,
+  handleApproveSubmission,
+  handleRejectSubmission,
+  handleGetModerationQueue
+} from './handlers/submissions';
+import {
+  handleListIssues,
+  handleGetIssue,
+  handleCreateIssue,
+  handleGetTargetIssues,
+  handleAddComment,
+  handleVoteIssue,
+  handleGovernmentResponse,
+  handleUpdateIssueStatus,
+  handleGetAssignedIssues
+} from './handlers/issues';
+import {
+  handleUploadScreenshot,
+  handleGetScreenshot,
+  handleDeleteScreenshot
+} from './handlers/upload';
+import {
+  handleGetRankings,
+  handleGetStateRankingHistory,
+  handleGetMethodology,
+  handleSubmitSuggestion,
+  handleListSuggestions,
+  handleUpdateSuggestion,
+  handleGetRankingStatistics
+} from './handlers/rankings';
+import { runScheduledRankings } from './ranking/calculator';
+import {
+  handleListDepartments,
+  handleRequestVerification,
+  handleConfirmVerification,
+  handleSubmitAppeal,
+  handleListAppeals,
+  handleUpdateAppeal,
+  handleGovernmentDashboard
+} from './handlers/government';
+import { handleSecurityRequest } from './handlers/security';
 import { runBackfillCheck } from './checks/backfill';
 import { checkTarget } from './checks/checker';
 
@@ -152,6 +204,16 @@ export default {
         return await handleGetStateSummary(env, window, corsHeaders);
       }
 
+      if (url.pathname === '/api/state-daily' && request.method === 'GET') {
+        const state = url.searchParams.get('state');
+        const window = url.searchParams.get('window') || '7d';
+        return await handleGetStateDailyUptime(env, state, window, corsHeaders);
+      }
+
+      if (url.pathname === '/api/tender-sites' && request.method === 'GET') {
+        return await handleGetTenderSites(env, corsHeaders);
+      }
+
       // Alert API routes
       if (url.pathname === '/api/alerts' && request.method === 'GET') {
         return await handleGetAlerts(env, url.searchParams, corsHeaders);
@@ -180,6 +242,21 @@ export default {
         return await handleDeleteAlertChannel(env, channelId, corsHeaders);
       }
 
+      // ========================================================================
+      // User OAuth Routes (Google OAuth)
+      // ========================================================================
+      if (url.pathname === '/api/auth/google' && request.method === 'POST') {
+        return await handleGoogleAuth(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/auth/me' && request.method === 'GET') {
+        return await handleGetCurrentUser(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+        return await handleLogout(request, env, corsHeaders);
+      }
+
       // Authentication API routes (admin only)
       if (url.pathname === '/api/auth/keys' && request.method === 'GET') {
         return await handleListApiKeys(env, corsHeaders);
@@ -206,6 +283,183 @@ export default {
 
       if (url.pathname === '/api/auth/audit' && request.method === 'GET') {
         return await handleGetAuditLog(env, url.searchParams, corsHeaders);
+      }
+
+      // ========================================================================
+      // Community Submissions API Routes
+      // ========================================================================
+      if (url.pathname === '/api/submissions' && request.method === 'GET') {
+        return await handleListSubmissions(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/submissions' && request.method === 'POST') {
+        return await handleCreateSubmission(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/submissions/mine' && request.method === 'GET') {
+        return await handleGetMySubmissions(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/submissions/guidelines' && request.method === 'GET') {
+        return await handleGetGuidelines(env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/submissions/moderation-queue' && request.method === 'GET') {
+        return await handleGetModerationQueue(request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/submissions\/\d+\/vote$/) && request.method === 'POST') {
+        const submissionId = url.pathname.split('/')[3];
+        return await handleVoteSubmission(submissionId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/submissions\/\d+\/approve$/) && request.method === 'PUT') {
+        const submissionId = url.pathname.split('/')[3];
+        return await handleApproveSubmission(submissionId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/submissions\/\d+\/reject$/) && request.method === 'PUT') {
+        const submissionId = url.pathname.split('/')[3];
+        return await handleRejectSubmission(submissionId, request, env, corsHeaders);
+      }
+
+      // ========================================================================
+      // Issue Reporting API Routes
+      // ========================================================================
+      if (url.pathname === '/api/issues' && request.method === 'GET') {
+        return await handleListIssues(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/issues' && request.method === 'POST') {
+        return await handleCreateIssue(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/issues/assigned' && request.method === 'GET') {
+        return await handleGetAssignedIssues(request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/issues\/\d+$/) && request.method === 'GET') {
+        const issueId = url.pathname.split('/')[3];
+        return await handleGetIssue(issueId, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/issues\/\d+\/comments$/) && request.method === 'POST') {
+        const issueId = url.pathname.split('/')[3];
+        return await handleAddComment(issueId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/issues\/\d+\/vote$/) && request.method === 'POST') {
+        const issueId = url.pathname.split('/')[3];
+        return await handleVoteIssue(issueId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/issues\/\d+\/respond$/) && request.method === 'PUT') {
+        const issueId = url.pathname.split('/')[3];
+        return await handleGovernmentResponse(issueId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/issues\/\d+\/status$/) && request.method === 'PUT') {
+        const issueId = url.pathname.split('/')[3];
+        return await handleUpdateIssueStatus(issueId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/targets\/\d+\/issues$/) && request.method === 'GET') {
+        const targetId = url.pathname.split('/')[3];
+        return await handleGetTargetIssues(targetId, request, env, corsHeaders);
+      }
+
+      // ========================================================================
+      // Screenshot Upload API Routes
+      // ========================================================================
+      if (url.pathname === '/api/upload/screenshot' && request.method === 'POST') {
+        return await handleUploadScreenshot(request, env, corsHeaders);
+      }
+
+      if (url.pathname.startsWith('/api/screenshots/') && request.method === 'GET') {
+        const filename = url.pathname.replace('/api/screenshots/', '');
+        return await handleGetScreenshot(filename, env, corsHeaders);
+      }
+
+      if (url.pathname.startsWith('/api/screenshots/') && request.method === 'DELETE') {
+        const filename = url.pathname.replace('/api/screenshots/', '');
+        return await handleDeleteScreenshot(filename, request, env, corsHeaders);
+      }
+
+      // ========================================================================
+      // Ranking System API Routes
+      // ========================================================================
+      if (url.pathname === '/api/rankings' && request.method === 'GET') {
+        return await handleGetRankings(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/rankings/methodology' && request.method === 'GET') {
+        return await handleGetMethodology(env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/rankings/statistics' && request.method === 'GET') {
+        return await handleGetRankingStatistics(env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/rankings/suggestions' && request.method === 'GET') {
+        return await handleListSuggestions(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/rankings/suggestions' && request.method === 'POST') {
+        return await handleSubmitSuggestion(request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/rankings\/suggestions\/\d+$/) && request.method === 'PUT') {
+        const suggestionId = url.pathname.split('/')[4];
+        return await handleUpdateSuggestion(suggestionId, request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/rankings\/state\/[^/]+$/) && request.method === 'GET') {
+        const state = url.pathname.split('/')[4];
+        return await handleGetStateRankingHistory(state, request, env, corsHeaders);
+      }
+
+      // ========================================================================
+      // Government Integration API Routes
+      // ========================================================================
+      if (url.pathname === '/api/government/departments' && request.method === 'GET') {
+        return await handleListDepartments(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/government/verify' && request.method === 'POST') {
+        return await handleRequestVerification(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/government/verify/confirm' && request.method === 'POST') {
+        return await handleConfirmVerification(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/government/dashboard' && request.method === 'GET') {
+        return await handleGovernmentDashboard(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/appeals' && request.method === 'GET') {
+        return await handleListAppeals(request, env, corsHeaders);
+      }
+
+      if (url.pathname === '/api/appeals' && request.method === 'POST') {
+        return await handleSubmitAppeal(request, env, corsHeaders);
+      }
+
+      if (url.pathname.match(/^\/api\/appeals\/\d+$/) && request.method === 'PUT') {
+        const appealId = url.pathname.split('/')[3];
+        return await handleUpdateAppeal(appealId, request, env, corsHeaders);
+      }
+
+      // ========================================================================
+      // Security Monitoring API Routes (admin only)
+      // ========================================================================
+      if (url.pathname.startsWith('/api/security')) {
+        const response = await handleSecurityRequest(request, env);
+        const jsonResponse = new Response(response.body, {
+          status: response.status,
+          headers: { ...corsHeaders, ...Object.fromEntries(response.headers) }
+        });
+        return jsonResponse;
       }
 
       // ========================================================================
@@ -492,6 +746,13 @@ export default {
             console.log(`Data cleanup: ${cleanupReport.total_deleted} records deleted`);
           } catch (error) {
             console.error('Data cleanup error:', error);
+          }
+
+          // Run scheduled ranking calculations
+          try {
+            await runScheduledRankings(env);
+          } catch (error) {
+            console.error('Ranking calculation error:', error);
           }
         }
       }

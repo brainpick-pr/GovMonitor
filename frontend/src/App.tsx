@@ -4,11 +4,31 @@ import { AddTargetDialog } from "./components/AddTargetDialog"
 import { StateDashboard } from "./components/StateDashboard"
 import { TargetDetail } from "./components/TargetDetail"
 import { LandingPage } from "./components/LandingPage"
-import { ThemeToggle } from "./components/ThemeToggle"
+import { SecurityDashboard } from "./components/SecurityDashboard"
+import { TenderWatch } from "./components/TenderWatch"
+import { AdminLogin } from "./components/AdminLogin"
+import { GoogleLoginButton } from "./components/GoogleLoginButton"
+import { UserAvatar } from "./components/UserAvatar"
+import { UserProfile } from "./components/UserProfile"
 import { Button } from "./components/ui/button"
 import { Toaster } from "./components/ui/toaster"
 import { useToast } from "./components/ui/use-toast"
-import { Plus, RefreshCw, Activity, Map, Home } from "lucide-react"
+import { useAuth } from "./contexts/AuthContext"
+import {
+  Plus,
+  RefreshCw,
+  Map,
+  Shield,
+  LogOut,
+  Lock,
+  FileText,
+  Server,
+  Moon,
+  Sun,
+  ChevronLeft,
+  ExternalLink,
+  User,
+} from "lucide-react"
 
 interface Target {
   id: number
@@ -24,16 +44,81 @@ interface Target {
   error: string | null
 }
 
+type ViewType = "landing" | "targets" | "dashboard" | "detail" | "security" | "admin-login" | "tender-watch" | "profile" | "login"
+
+// Ashoka Chakra SVG component
+function AshokaChakra({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 100 100" className={className} fill="currentColor">
+      <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" strokeWidth="2" />
+      <circle cx="50" cy="50" r="8" />
+      {Array.from({ length: 24 }).map((_, i) => {
+        const angle = (i * 15 * Math.PI) / 180
+        const x1 = 50 + 10 * Math.cos(angle)
+        const y1 = 50 + 10 * Math.sin(angle)
+        const x2 = 50 + 46 * Math.cos(angle)
+        const y2 = 50 + 46 * Math.sin(angle)
+        return (
+          <line
+            key={i}
+            x1={x1}
+            y1={y1}
+            x2={x2}
+            y2={y2}
+            stroke="currentColor"
+            strokeWidth="1.5"
+          />
+        )
+      })}
+    </svg>
+  )
+}
+
 function App() {
   const [targets, setTargets] = useState<Target[]>([])
   const [loading, setLoading] = useState(true)
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [view, setView] = useState<"landing" | "targets" | "dashboard" | "detail">("landing")
+  const [view, setView] = useState<ViewType>("dashboard")
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("govmonitor-theme")
+      if (stored) {
+        return stored === "dark"
+      }
+      return window.matchMedia("(prefers-color-scheme: dark)").matches
+    }
+    return false
+  })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const { toast } = useToast()
+  const { isAuthenticated, isAdmin, logout, user, isUserAuthenticated } = useAuth()
   const apiUrl = import.meta.env.VITE_API_URL || "/api"
+
+  // Handle OAuth callback on mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const error = urlParams.get('error')
+
+    // If there's an OAuth callback, go to login view to process it
+    if (code || error) {
+      setView("login")
+    }
+  }, [])
+
+  // Toggle dark mode and persist
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark")
+      localStorage.setItem("govmonitor-theme", "dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+      localStorage.setItem("govmonitor-theme", "light")
+    }
+  }, [darkMode])
 
   const fetchStatus = async () => {
     try {
@@ -59,8 +144,6 @@ function App() {
 
   useEffect(() => {
     fetchStatus()
-
-    // Auto-refresh every 2 minutes
     const interval = setInterval(fetchStatus, 120000)
     return () => clearInterval(interval)
   }, [])
@@ -122,190 +205,358 @@ function App() {
     fetchStatus()
   }
 
+  const handleLogout = () => {
+    logout()
+    setView("dashboard")
+    toast({
+      title: "Logged out",
+      description: "You have been logged out successfully",
+    })
+  }
+
   const upCount = targets.filter((t) => t.ok === 1).length
   const downCount = targets.filter((t) => t.ok === 0).length
-  const totalCount = targets.length
-  const stateSummary = targets.reduce<Record<string, { up: number; down: number; total: number }>>(
-    (acc, target) => {
-      const key = target.state || "Unassigned"
-      const entry = acc[key] || { up: 0, down: 0, total: 0 }
-      entry.total += 1
-      if (target.ok === 1) entry.up += 1
-      if (target.ok === 0) entry.down += 1
-      acc[key] = entry
-      return acc
-    },
-    {}
-  )
-  const stateRows = Object.entries(stateSummary).sort((a, b) =>
-    a[0].localeCompare(b[0])
-  )
 
-  // Show landing page
+  // Show landing page (full screen, separate from app shell)
   if (view === "landing") {
-    return <LandingPage onEnterDashboard={() => setView("targets")} />
+    return <LandingPage onEnterDashboard={() => setView("dashboard")} />
+  }
+
+  // Navigation items
+  const navItems: { key: ViewType; label: string; icon: React.ReactNode }[] = [
+    { key: "dashboard", label: "State Map", icon: <Map className="h-5 w-5" /> },
+    { key: "targets", label: "Targets", icon: <Server className="h-5 w-5" /> },
+    { key: "tender-watch", label: "Tender Watch", icon: <FileText className="h-5 w-5" /> },
+  ]
+
+  if (isAdmin) {
+    navItems.push({ key: "security", label: "Security", icon: <Shield className="h-5 w-5" /> })
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Activity className="h-8 w-8" />
-              <div>
-                <h1 className="text-2xl font-bold">GovMonitor.Org</h1>
-                <p className="text-sm text-primary-foreground/80">
-                  Government Website Uptime Monitoring
+    <div className="h-full flex bg-background">
+      {/* Left Sidebar */}
+      <aside
+        className={`flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-200 ${
+          sidebarCollapsed ? "w-16" : "w-56"
+        }`}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border">
+          <AshokaChakra className="h-8 w-8 text-secondary flex-shrink-0" />
+          {!sidebarCollapsed && (
+            <div className="overflow-hidden">
+              <h1 className="font-display text-lg font-semibold text-sidebar-foreground leading-tight">
+                GovMonitor
+              </h1>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Civic Transparency
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-2 space-y-1">
+          {navItems.map((item) => {
+            const isActive = view === item.key || (item.key === "targets" && view === "detail")
+            return (
+              <button
+                key={item.key}
+                onClick={() => {
+                  setView(item.key)
+                  if (item.key !== "detail") setSelectedTarget(null)
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-sidebar-accent text-sidebar-primary"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                }`}
+                title={sidebarCollapsed ? item.label : undefined}
+              >
+                <span className={isActive ? "text-sidebar-primary" : ""}>{item.icon}</span>
+                {!sidebarCollapsed && <span>{item.label}</span>}
+              </button>
+            )
+          })}
+        </nav>
+
+        {/* Status Indicators */}
+        <div className="px-4 py-3 border-t border-sidebar-border">
+          {!sidebarCollapsed ? (
+            <>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Live Status
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2" title="Online targets">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                  </span>
+                  <span className="text-sm font-medium text-sidebar-foreground">{upCount}</span>
+                  <span className="text-xs text-muted-foreground">up</span>
+                </div>
+                <div className="flex items-center gap-2" title="Offline targets">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                  <span className="text-sm font-medium text-sidebar-foreground">{downCount}</span>
+                  <span className="text-xs text-muted-foreground">down</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2" title={`${upCount} up, ${downCount} down`}>
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-xs font-medium text-sidebar-foreground">{upCount}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                <span className="text-xs font-medium text-sidebar-foreground">{downCount}</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="p-2 border-t border-sidebar-border space-y-1">
+          {/* Collapse Toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <ChevronLeft
+              className={`h-5 w-5 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`}
+            />
+            {!sidebarCollapsed && <span>Collapse</span>}
+          </button>
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+            title={sidebarCollapsed ? (darkMode ? "Light mode" : "Dark mode") : undefined}
+          >
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {!sidebarCollapsed && <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>}
+          </button>
+
+          {/* User Auth */}
+          {isUserAuthenticated && user ? (
+            <button
+              onClick={() => setView("profile")}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+              title={sidebarCollapsed ? user.display_name : undefined}
+            >
+              <UserAvatar user={user} size="sm" />
+              {!sidebarCollapsed && (
+                <span className="truncate">{user.display_name}</span>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={() => setView("login")}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+              title={sidebarCollapsed ? "Sign In" : undefined}
+            >
+              <User className="h-5 w-5" />
+              {!sidebarCollapsed && <span>Sign In</span>}
+            </button>
+          )}
+
+          {/* Admin Auth Button (API Key) */}
+          {!isAuthenticated ? (
+            <button
+              onClick={() => setView("admin-login")}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+              title={sidebarCollapsed ? "Admin Login" : undefined}
+            >
+              <Lock className="h-5 w-5" />
+              {!sidebarCollapsed && <span>Admin Login</span>}
+            </button>
+          ) : (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
+              title={sidebarCollapsed ? "Logout" : undefined}
+            >
+              <LogOut className="h-5 w-5" />
+              {!sidebarCollapsed && <span>Logout</span>}
+            </button>
+          )}
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Top Bar */}
+        <header className="flex items-center justify-between px-6 h-14 border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
+          <div>
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              {view === "dashboard" && "State-wise Monitoring"}
+              {view === "targets" && "Monitored Websites"}
+              {view === "tender-watch" && "Tender Portal Watch"}
+              {view === "security" && "Security Dashboard"}
+              {view === "admin-login" && "Admin Login"}
+              {view === "login" && "Sign In"}
+              {view === "profile" && "Your Profile"}
+              {view === "detail" && selectedTarget?.name}
+            </h2>
+            {view === "detail" && selectedTarget && (
+              <a
+                href={selectedTarget.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-primary flex items-center gap-1"
+              >
+                {selectedTarget.hostname}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {view === "targets" && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                  Refresh
+                </Button>
+                <Button size="sm" onClick={() => setAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Website
+                </Button>
+              </>
+            )}
+            {view === "detail" && (
+              <Button variant="outline" size="sm" onClick={() => setView("targets")}>
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Back to Targets
+              </Button>
+            )}
+          </div>
+        </header>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-auto scrollbar-thin">
+          {view === "login" ? (
+            <div className="p-8 max-w-md mx-auto">
+              <div className="bg-card rounded-lg border p-6">
+                <h2 className="text-xl font-semibold mb-2">Welcome to GovMonitor</h2>
+                <p className="text-muted-foreground mb-6">
+                  Sign in to report issues, submit websites, and participate in the community.
+                </p>
+                <GoogleLoginButton
+                  onSuccess={() => setView("dashboard")}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground mt-4 text-center">
+                  By signing in, you agree to our Terms of Service and Privacy Policy.
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setView("landing")}
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Button>
-              <Button
-                variant={view === "targets" || view === "detail" ? "default" : "secondary"}
-                size="sm"
-                onClick={() => {
+          ) : view === "profile" ? (
+            <div className="p-8 max-w-md mx-auto">
+              {user ? (
+                <UserProfile onLogout={() => setView("dashboard")} />
+              ) : (
+                <div className="text-center">
+                  <p className="text-muted-foreground mb-4">You need to sign in to view your profile.</p>
+                  <Button onClick={() => setView("login")}>
+                    <User className="h-4 w-4 mr-2" />
+                    Sign In
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : view === "admin-login" ? (
+            <div className="p-8 max-w-md mx-auto">
+              <AdminLogin onSuccess={() => setView("dashboard")} />
+            </div>
+          ) : view === "dashboard" ? (
+            <StateDashboard apiUrl={apiUrl} />
+          ) : view === "tender-watch" ? (
+            <div className="p-6">
+              <TenderWatch apiUrl={apiUrl} />
+            </div>
+          ) : view === "security" ? (
+            isAdmin ? (
+              <div className="p-6">
+                <SecurityDashboard />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Shield className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h2 className="text-xl font-semibold mb-2">Admin Access Required</h2>
+                  <p className="text-muted-foreground mb-6">
+                    You need admin privileges to view the security dashboard
+                  </p>
+                  <Button onClick={() => setView("admin-login")}>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Login as Admin
+                  </Button>
+                </div>
+              </div>
+            )
+          ) : view === "detail" && selectedTarget ? (
+            <div className="p-6">
+              <TargetDetail
+                target={selectedTarget}
+                apiUrl={apiUrl}
+                onBack={() => {
                   setView("targets")
                   setSelectedTarget(null)
                 }}
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Targets
-              </Button>
-              <Button
-                variant={view === "dashboard" ? "default" : "secondary"}
-                size="sm"
-                onClick={() => setView("dashboard")}
-              >
-                <Map className="h-4 w-4 mr-2" />
-                State Dashboard
-              </Button>
-              {(view === "targets" || view === "detail") && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                    Refresh
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setAddDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Website
-                  </Button>
-                </>
-              )}
-              <ThemeToggle />
+              />
             </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Stats Bar */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex gap-8">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-500"></div>
-              <span className="text-sm font-medium">Up: {upCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-red-500"></div>
-              <span className="text-sm font-medium">Down: {downCount}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                Total: {totalCount}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* State Overview */}
-      {stateRows.length > 0 && (
-        <div className="border-b bg-muted/50">
-          <div className="container mx-auto px-4 py-4">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-              State Uptime Overview
-            </h2>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {stateRows.map(([state, stats]) => (
-                <div
-                  key={state}
-                  className="rounded-md border bg-background px-4 py-3 text-sm shadow-sm"
-                >
-                  <div className="font-medium">{state}</div>
-                  <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Up: {stats.up}</span>
-                    <span>Down: {stats.down}</span>
-                    <span>Total: {stats.total}</span>
+          ) : (
+            /* Targets View */
+            <div className="p-6">
+              {loading ? (
+                <div className="flex items-center justify-center py-24">
+                  <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : targets.length === 0 ? (
+                <div className="flex items-center justify-center py-24">
+                  <div className="text-center">
+                    <Server className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h2 className="text-xl font-semibold mb-2">No websites monitored yet</h2>
+                    <p className="text-muted-foreground mb-6">
+                      Add your first government website to start monitoring
+                    </p>
+                    <Button onClick={() => setAddDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Website
+                    </Button>
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+                  {targets.map((target) => (
+                    <StatusCard
+                      key={target.id}
+                      target={target}
+                      onClick={() => {
+                        setSelectedTarget(target)
+                        setView("detail")
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
-      )}
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {view === "dashboard" ? (
-          <StateDashboard apiUrl={apiUrl} />
-        ) : view === "detail" && selectedTarget ? (
-          <TargetDetail
-            target={selectedTarget}
-            apiUrl={apiUrl}
-            onBack={() => {
-              setView("targets")
-              setSelectedTarget(null)
-            }}
-          />
-        ) : loading ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : targets.length === 0 ? (
-          <div className="text-center py-12">
-            <Activity className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h2 className="text-xl font-semibold mb-2">No websites monitored yet</h2>
-            <p className="text-muted-foreground mb-6">
-              Add your first government website to start monitoring
-            </p>
-            <Button onClick={() => setAddDialogOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Website
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {targets.map((target) => (
-              <StatusCard
-                key={target.id}
-                target={target}
-                onClick={() => {
-                  setSelectedTarget(target)
-                  setView("detail")
-                }}
-              />
-            ))}
-          </div>
-        )}
       </main>
 
       {/* Add Target Dialog */}

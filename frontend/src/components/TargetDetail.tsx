@@ -2,7 +2,15 @@ import { useEffect, useState, Suspense } from "react"
 import { Button } from "./ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
 import { Badge } from "./ui/badge"
-import { ArrowLeft, RefreshCw, Activity, Clock, ExternalLink } from "lucide-react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table"
+import { RefreshCw, Activity, Clock, ExternalLink } from "lucide-react"
 import { formatDistanceToNow, format } from "date-fns"
 import {
   LineChart,
@@ -148,7 +156,7 @@ function HistoryCharts({
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground">Uptime</div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-2xl font-bold text-green-600">
               {uptimePercentage}%
             </div>
           </CardContent>
@@ -162,7 +170,7 @@ function HistoryCharts({
         <Card>
           <CardContent className="pt-4">
             <div className="text-sm text-muted-foreground">Successful</div>
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+            <div className="text-2xl font-bold text-green-600">
               {successfulChecks}
             </div>
           </CardContent>
@@ -210,7 +218,7 @@ function HistoryCharts({
                 <Line
                   type="monotone"
                   dataKey="latency"
-                  stroke="hsl(var(--primary))"
+                  stroke="var(--primary)"
                   strokeWidth={2}
                   dot={false}
                   connectNulls={false}
@@ -272,56 +280,55 @@ function HistoryCharts({
           <CardTitle className="text-lg">Recent Checks</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-2 text-left">Time</th>
-                  <th className="px-4 py-2 text-center">Status</th>
-                  <th className="px-4 py-2 text-right">HTTP</th>
-                  <th className="px-4 py-2 text-right">Latency</th>
-                  <th className="px-4 py-2 text-left">Error</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {history
-                  .slice(-20)
-                  .reverse()
-                  .map((record, idx) => (
-                    <tr key={idx} className="hover:bg-muted/30">
-                      <td className="px-4 py-2">
-                        {format(new Date(record.ts * 1000), "PPpp")}
-                      </td>
-                      <td className="px-4 py-2 text-center">
-                        <Badge
-                          variant={record.ok === 1 ? "success" : "destructive"}
-                        >
-                          {record.ok === 1 ? "UP" : "DOWN"}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        {record.status || "N/A"}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        {record.latency_ms != null
-                          ? `${record.latency_ms}ms`
-                          : "N/A"}
-                      </td>
-                      <td className="px-4 py-2 text-destructive truncate max-w-xs">
-                        {record.error || "-"}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Time</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">HTTP</TableHead>
+                <TableHead className="text-right">Latency</TableHead>
+                <TableHead>Error</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {history
+                .slice(-20)
+                .reverse()
+                .map((record, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell>
+                      {format(new Date(record.ts * 1000), "PPpp")}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={record.ok === 1 ? "success" : "destructive"}
+                      >
+                        {record.ok === 1 ? "UP" : "DOWN"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {record.status || "N/A"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {record.latency_ms != null
+                        ? `${record.latency_ms}ms`
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell className="text-destructive truncate max-w-xs">
+                      {record.error || "-"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
   )
 }
 
-export function TargetDetail({ target, apiUrl, onBack }: TargetDetailProps) {
+export function TargetDetail({ target, apiUrl, onBack: _onBack }: TargetDetailProps) {
+  void _onBack // Preserved for interface compatibility - navigation handled by parent
   const [window, setWindow] = useState<TimeWindow>("24h")
   const isUp = target.ok === 1
   const lastCheckedAt = target.ts ? new Date(target.ts * 1000) : null
@@ -335,47 +342,31 @@ export function TargetDetail({ target, apiUrl, onBack }: TargetDetailProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-      </div>
-
       {/* Target Info Card */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">{target.name}</CardTitle>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Badge
+                variant={isUp ? "success" : "destructive"}
+                className="text-sm px-3 py-1"
+              >
+                {isUp ? "UP" : "DOWN"}
+              </Badge>
               {target.state && (
-                <p className="text-sm text-muted-foreground mt-1">
+                <span className="text-sm text-muted-foreground">
                   {target.state}
-                </p>
+                </span>
               )}
             </div>
-            <Badge
-              variant={isUp ? "success" : "destructive"}
-              className="text-sm px-3 py-1"
-            >
-              {isUp ? "UP" : "DOWN"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-2">
-              <ExternalLink className="h-4 w-4 text-muted-foreground" />
-              <a
-                href={target.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline truncate"
-              >
-                {target.hostname}
-              </a>
+            <div className="text-sm text-muted-foreground">
+              Last checked:{" "}
+              {lastCheckedAt
+                ? formatDistanceToNow(lastCheckedAt, { addSuffix: true })
+                : "Never"}
             </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
@@ -392,11 +383,16 @@ export function TargetDetail({ target, apiUrl, onBack }: TargetDetailProps) {
                 </span>
               </span>
             </div>
-            <div className="text-sm text-muted-foreground">
-              Last checked:{" "}
-              {lastCheckedAt
-                ? formatDistanceToNow(lastCheckedAt, { addSuffix: true })
-                : "Never"}
+            <div className="flex items-center gap-2">
+              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+              <a
+                href={target.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline truncate"
+              >
+                {target.hostname}
+              </a>
             </div>
           </div>
           {target.error && (

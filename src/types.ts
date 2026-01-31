@@ -15,6 +15,19 @@ export interface Env {
   ADMIN_API_KEYS?: string;       // Comma-separated admin keys
   READ_ONLY_API_KEYS?: string;   // Comma-separated read-only keys
   REQUIRE_AUTH_FOR_READS?: string; // "true" | "false"
+
+  // Google OAuth
+  GOOGLE_CLIENT_ID?: string;     // Google OAuth client ID
+  GOOGLE_CLIENT_SECRET?: string; // Google OAuth client secret
+
+  // Encryption & Security
+  ENCRYPTION_KEY?: string;       // Base64-encoded 256-bit AES key for data at rest
+  SECURITY_WEBHOOK_URL?: string; // Webhook for security alerts
+  DISABLE_ENCRYPTION?: string;   // "true" to disable encryption (emergency rollback)
+  DISABLE_THREAT_DETECTION?: string; // "true" to disable threat detection
+
+  // R2 Storage for file uploads
+  SCREENSHOTS?: R2Bucket;        // R2 bucket for issue screenshots
 }
 
 export type CheckMode = 'website' | 'api-json' | 'api-text';
@@ -472,4 +485,237 @@ export interface CleanupReport {
   alerts_deleted: number;
   total_deleted: number;
   execution_time_ms: number;
+}
+
+// ============================================================================
+// User Authentication Types (Google OAuth)
+// ============================================================================
+
+export type UserRole = 'user' | 'moderator' | 'admin' | 'government';
+
+export interface User {
+  id: number;
+  google_id: string;
+  email: string;
+  display_name: string;
+  avatar_url: string | null;
+  role: UserRole;
+  reputation_score: number;
+  is_banned: number;
+  ban_reason: string | null;
+  banned_at: number | null;
+  banned_by: number | null;
+  created_at: number;
+  updated_at: number;
+  last_login_at: number | null;
+}
+
+export interface UserSession {
+  id: number;
+  user_id: number;
+  session_token: string;
+  expires_at: number;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: number;
+  last_activity_at: number;
+}
+
+export interface UserIPLog {
+  id: number;
+  user_id: number;
+  ip_address: string;
+  action: string;
+  resource_type: string | null;
+  resource_id: number | null;
+  metadata: string | null;
+  created_at: number;
+}
+
+export interface PublicUser {
+  id: number;
+  display_name: string;
+  avatar_url: string | null;
+  role: UserRole;
+  reputation_score: number;
+  created_at: number;
+}
+
+// ============================================================================
+// Community Submission Types
+// ============================================================================
+
+export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
+export type PortalCategory = 'central' | 'identity' | 'financial' | 'transport' | 'utilities' | 'health' | 'business' | 'passport' | 'transparency' | 'education' | 'tender' | 'other';
+
+export interface Submission {
+  id: number;
+  user_id: number;
+  name: string;
+  url: string;
+  hostname: string;
+  state: string | null;
+  category: PortalCategory;
+  justification: string;
+  status: SubmissionStatus;
+  reviewed_by: number | null;
+  reviewed_at: number | null;
+  review_notes: string | null;
+  target_id: number | null;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface CreateSubmissionPayload {
+  name: string;
+  url: string;
+  state?: string;
+  category: PortalCategory;
+  justification: string;
+}
+
+// ============================================================================
+// Issue Reporting Types
+// ============================================================================
+
+export type IssueStatus = 'open' | 'investigating' | 'resolved' | 'wont_fix' | 'duplicate';
+export type IssueSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type IssueCategory = 'downtime' | 'slow_performance' | 'broken_functionality' | 'security_concern' | 'accessibility' | 'data_issue' | 'other';
+
+export interface Issue {
+  id: number;
+  target_id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  category: IssueCategory;
+  severity: IssueSeverity;
+  status: IssueStatus;
+  screenshot_url: string | null;
+  government_response: string | null;
+  government_responded_by: number | null;
+  government_responded_at: number | null;
+  upvotes: number;
+  created_at: number;
+  updated_at: number;
+  resolved_at: number | null;
+  resolved_by: number | null;
+}
+
+export interface IssueComment {
+  id: number;
+  issue_id: number;
+  user_id: number;
+  content: string;
+  is_government_response: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface IssueScreenshot {
+  id: number;
+  issue_id: number;
+  url: string;
+  filename: string;
+  size_bytes: number;
+  created_at: number;
+}
+
+export interface CreateIssuePayload {
+  target_id: number;
+  title: string;
+  description: string;
+  category: IssueCategory;
+  severity: IssueSeverity;
+}
+
+export interface CreateIssueCommentPayload {
+  content: string;
+}
+
+// ============================================================================
+// Ranking System Types
+// ============================================================================
+
+export type RankingPeriod = 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+
+export interface StateRanking {
+  id: number;
+  state: string;
+  period: RankingPeriod;
+  period_start: number;
+  period_end: number;
+  rank: number;
+  previous_rank: number | null;
+  rank_change: number;
+  score: number;
+  uptime_percentage: number;
+  avg_latency_ms: number;
+  issue_resolution_rate: number;
+  portal_coverage: number;
+  created_at: number;
+}
+
+export interface RankingMethodology {
+  id: number;
+  version: number;
+  uptime_weight: number;
+  latency_weight: number;
+  issue_resolution_weight: number;
+  coverage_weight: number;
+  description: string;
+  effective_from: number;
+  created_at: number;
+}
+
+export interface RankingSuggestion {
+  id: number;
+  user_id: number;
+  suggestion: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  admin_response: string | null;
+  created_at: number;
+  reviewed_at: number | null;
+}
+
+// ============================================================================
+// Government Integration Types
+// ============================================================================
+
+export interface GovernmentDepartment {
+  id: number;
+  name: string;
+  state: string | null;
+  email_domain: string;
+  verified: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface GovernmentVerification {
+  id: number;
+  user_id: number;
+  department_id: number;
+  verification_code: string;
+  verified: number;
+  verified_at: number | null;
+  created_at: number;
+  expires_at: number;
+}
+
+export type AppealType = 'status_dispute' | 'data_correction' | 'removal_request';
+export type AppealStatus = 'pending' | 'under_review' | 'approved' | 'rejected';
+
+export interface ApiAppeal {
+  id: number;
+  user_id: number;
+  target_id: number;
+  appeal_type: AppealType;
+  reason: string;
+  evidence_url: string | null;
+  status: AppealStatus;
+  admin_response: string | null;
+  created_at: number;
+  reviewed_at: number | null;
+  reviewed_by: number | null;
 }

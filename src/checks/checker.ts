@@ -9,6 +9,7 @@ import { checkApiJson } from './modes/api-json';
 import { checkApiText } from './modes/api-text';
 import { isInMaintenanceWindow, logMaintenanceSkip } from '../maintenance/windows';
 import { updateSchedulingMetrics } from '../scheduling/metrics';
+import { storeCheckResult } from '../data/checks';
 
 export async function checkTarget(target: Target, env: Env): Promise<CheckResult | null> {
   const startTime = Date.now();
@@ -90,22 +91,8 @@ export async function checkTarget(target: Target, env: Env): Promise<CheckResult
     }));
   }
 
-  // Store result in D1
-  const nowForDb = Math.floor(Date.now() / 1000);
-  const checkInsertResult = await env.DB.prepare(`
-    INSERT INTO checks (target_id, ts, ok, status, latency_ms, error)
-    VALUES (?, ?, ?, ?, ?, ?)
-    RETURNING id
-  `).bind(
-    target.id,
-    nowForDb,
-    result.ok ? 1 : 0,
-    result.status || null,
-    result.latency_ms || null,
-    result.error || null
-  ).first<{ id: number }>();
-
-  const checkId = checkInsertResult?.id || 0;
+  // Store result in D1 (with encryption)
+  const checkId = await storeCheckResult(target.id, result, env);
 
   // Update scheduling metrics for smart scheduling
   try {

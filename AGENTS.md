@@ -2,7 +2,7 @@
 
 > **AI Agent Context Guide**
 > This document provides comprehensive context for AI assistants working on the GovMonitor.Org codebase.
-> Last updated: January 26, 2026
+> Last updated: January 31, 2026
 
 ---
 
@@ -58,17 +58,29 @@ The system exclusively monitors government domains:
    - Color-coded uptime indicators per state
    - Sortable state statistics tables
 
-3. **Performance Optimization**
+3. **Tender Watch** (NEW)
+   - State-wise tender portal monitoring
+   - Daily uptime breakdown per state
+   - Per-target uptime statistics
+   - Trend indicators for uptime changes
+   - Quick add for tender sites
+
+4. **Performance Optimization**
    - Cloudflare KV caching (60s TTL on status)
    - D1 database views for pre-computed aggregations
    - Batch processing (25 targets per batch)
    - State summary caching (5 min TTL)
 
-4. **Comprehensive History**
+5. **Comprehensive History**
    - Per-target check history with charts
    - Time-series latency tracking
    - Error message logging
    - Interval tracking (what interval was configured at check time)
+
+6. **Security Dashboard** (Admin-only)
+   - Real-time security event monitoring
+   - Threat detection and alerting
+   - IP-based analytics
 
 ---
 
@@ -152,11 +164,21 @@ The system exclusively monitors government domains:
 ### Key Files
 
 #### Backend (`src/`)
-- **`worker.ts`** (736 lines) - Main worker entry point
+- **`worker.ts`** - Main worker entry point
   - Exports: `fetch()` (API handler), `scheduled()` (cron handler)
-  - Implements all API endpoints
-  - Contains health check logic for all 3 modes
+  - Routes to modular handlers
   - Manages KV caching and D1 queries
+
+- **`handlers/`** - Modular API handlers
+  - `status.ts` - GET /api/status
+  - `history.ts` - GET /api/history
+  - `targets.ts` - CRUD for monitoring targets
+  - `state-summary.ts` - GET /api/state-summary
+  - `state-daily.ts` - GET /api/state-daily, GET /api/tender-sites
+  - `security.ts` - Security event endpoints
+  - `auth.ts` - API key management
+  - `alerts.ts` - Alert configuration
+  - `bulk.ts` - Bulk operations
 
 #### Frontend (`frontend/src/`)
 - **`main.tsx`** - React application entry point
@@ -167,8 +189,15 @@ The system exclusively monitors government domains:
   - `IndiaMap.tsx` / `IndiaMapOptimized.tsx` - SVG map visualization
   - `TargetDetail.tsx` - Detailed analytics with time-series charts
   - `AddTargetDialog.tsx` - Form for adding new monitored targets
+  - `TenderWatch.tsx` - State-wise tender portal monitoring
+  - `SecurityDashboard.tsx` - Admin security event dashboard
+  - `AdminLogin.tsx` - Admin authentication
   - `LandingPage.tsx` - Marketing/intro page
-  - `ui/*` - shadcn/ui components (button, card, dialog, etc.)
+  - `ui/*` - shadcn/ui components (button, card, dialog, table, select, etc.)
+- **Contexts:**
+  - `AuthContext.tsx` - Authentication state management
+- **Utils:**
+  - `api.ts` - API client utilities
 
 #### Database
 - **`schema.sql`** - Base schema (config, targets, checks, views)
@@ -1140,6 +1169,73 @@ All endpoints are prefixed with `/api/`.
 
 ---
 
+### `GET /api/state-daily?state=X&window=Y`
+**Description:** Returns daily uptime breakdown for a specific state
+
+**Parameters:**
+- `state` (required): Indian state name (e.g., "Maharashtra")
+- `window` (optional): `24h` | `7d` | `30d` | `365d` (default: `7d`)
+
+**Response:**
+```json
+{
+  "state": "Maharashtra",
+  "window": "7d",
+  "daily": [
+    {
+      "date": "2026-01-30",
+      "total_targets": 5,
+      "total_checks": 480,
+      "successful_checks": 475,
+      "failed_checks": 5,
+      "uptime_percentage": 98.96,
+      "avg_latency_ms": 245
+    }
+  ],
+  "targets": [
+    {
+      "id": 1,
+      "name": "Maharashtra eTendering",
+      "hostname": "mahatenders.gov.in",
+      "total_checks": 96,
+      "successful_checks": 95,
+      "uptime_percentage": 98.96,
+      "avg_latency_ms": 234,
+      "last_check_ok": 1,
+      "last_check_ts": 1738300800
+    }
+  ]
+}
+```
+
+**Usage:** Powers the TenderWatch component
+
+---
+
+### `GET /api/tender-sites`
+**Description:** Returns all tender-related monitoring targets
+
+**Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Maharashtra eTendering",
+    "url": "https://mahatenders.gov.in",
+    "hostname": "mahatenders.gov.in",
+    "state": "Maharashtra",
+    "enabled": 1,
+    "last_ok": 1,
+    "last_ts": 1738300800,
+    "last_latency_ms": 245
+  }
+]
+```
+
+**Filter Logic:** Returns targets where name or URL contains "tender", "Tender", "eProcurement", "e-Procurement", or "eprocure"
+
+---
+
 ## Check Modes
 
 Three validation modes are supported (configured per target).
@@ -1422,6 +1518,12 @@ App.tsx (Main Router)
 │   ├── IndiaMapOptimized.tsx (SVG map)
 │   │   └── State paths with hover tooltips
 │   └── StateTable (Sortable statistics table)
+├── TenderWatch.tsx (State-wise tender portal monitoring)
+│   ├── State selector dropdown
+│   ├── Time window selector (24h/7d/30d/365d)
+│   ├── Daily uptime breakdown table
+│   └── Per-target statistics table
+├── SecurityDashboard.tsx (Admin-only security events)
 └── TargetDetail.tsx
     ├── Time window selector (24h/7d/30d/365d)
     ├── Uptime chart (Recharts line chart)
@@ -1614,7 +1716,7 @@ theme: {
 
 **Base URL:**
 - Development: `http://localhost:8787/api` (proxied by Vite)
-- Production: `https://govmonitor-worker.workers.dev/api` (or custom domain)
+- Production: `https://api.govmonitor.org` (custom domain)
 
 **Fetch Wrapper:**
 ```typescript
@@ -2066,6 +2168,17 @@ GovMonitorBot/1.0 (+https://govmonitor.org)
 
 ## Deployment Notes
 
+### Production URLs
+
+| Service | URL | Platform |
+|---------|-----|----------|
+| **Frontend** | https://govmonitor.org | Cloudflare Pages |
+| **Backend API** | https://api.govmonitor.org | Cloudflare Workers |
+| **Database** | D1 (govmonitor-db) | Cloudflare D1 |
+| **Cache** | KV Namespace | Cloudflare KV |
+
+---
+
 ### Worker Deployment
 
 #### Prerequisites
@@ -2103,7 +2216,7 @@ wrangler deployments list
 wrangler tail
 
 # Test API endpoint
-curl https://govmonitor-worker.<your-subdomain>.workers.dev/api/status
+curl https://api.govmonitor.org/api/status
 ```
 
 ---
@@ -2127,7 +2240,7 @@ wrangler pages deploy frontend/dist --project-name=govmonitor-frontend
 
 #### Configure Environment
 - **Production API URL:** Set `VITE_API_URL` in Pages environment variables
-- **Example:** `https://govmonitor-worker.<subdomain>.workers.dev/api`
+- **Example:** `https://api.govmonitor.org`
 
 #### Custom Domain (Optional)
 1. Add custom domain in Cloudflare Pages dashboard
@@ -2169,7 +2282,8 @@ wrangler d1 execute govmonitor-db --file=migrations/002_state_aggregation.sql
 
 **Manual Trigger (Testing):**
 ```bash
-curl -X POST https://govmonitor-worker.<subdomain>.workers.dev/api/check
+curl -X POST https://api.govmonitor.org/api/check \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ---
@@ -2483,6 +2597,6 @@ wrangler kv:key get "UPTIME_STATUS:latest" --namespace-id=<YOUR_KV_ID>
 
 ---
 
-**Last Updated:** January 26, 2026
-**Version:** 1.0
+**Last Updated:** January 31, 2026
+**Version:** 1.1
 **Maintained by:** GovMonitor.Org Team

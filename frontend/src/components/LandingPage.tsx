@@ -117,28 +117,28 @@ function TenderCard() {
   ]
 
   return (
-    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 space-y-4">
+    <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-lg">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-amber-500/20 rounded-lg">
-          <FileText className="h-5 w-5 text-amber-400" />
+        <div className="p-2 bg-primary/10 rounded-lg">
+          <FileText className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h4 className="font-semibold text-white">Tender Portals</h4>
-          <p className="text-xs text-white/60">Live status</p>
+          <h4 className="font-semibold text-foreground">Tender Portals</h4>
+          <p className="text-xs text-muted-foreground">Live status</p>
         </div>
       </div>
       <div className="space-y-2">
         {tenderSites.map((site) => (
           <div
             key={site.name}
-            className="flex items-center justify-between py-2 px-3 bg-white/5 rounded-lg"
+            className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg"
           >
-            <span className="text-sm text-white/80">{site.name}</span>
+            <span className="text-sm text-foreground">{site.name}</span>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-white/50">{site.latency}</span>
+              <span className="text-xs text-muted-foreground">{site.latency}</span>
               <div
                 className={`h-2 w-2 rounded-full ${
-                  site.status === "up" ? "bg-emerald-400" : "bg-red-400"
+                  site.status === "up" ? "bg-emerald-500" : "bg-red-500"
                 }`}
               />
             </div>
@@ -161,14 +161,9 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
   }, [])
 
   return (
-    <div className="min-h-screen bg-[#0a1628] text-white overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden">
       {/* Custom styles */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
-
-        .font-display { font-family: 'Playfair Display', Georgia, serif; }
-        .font-body { font-family: 'Source Sans 3', system-ui, sans-serif; }
-
         @keyframes spin-slow {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
@@ -197,47 +192,35 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
         .delay-300 { animation-delay: 300ms; }
         .delay-400 { animation-delay: 400ms; }
         .delay-500 { animation-delay: 500ms; }
-
-        .gradient-text {
-          background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .hero-gradient {
-          background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59, 130, 246, 0.15), transparent);
-        }
       `}</style>
 
       {/* Navigation */}
-      <nav className="relative z-50 border-b border-white/10">
+      <nav className="relative z-50 border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <AshokaChakra className="h-10 w-10 text-[#004080]" />
-                <div className="absolute inset-0 bg-[#FF9933] opacity-30 blur-xl" />
+                <AshokaChakra className="h-10 w-10 text-secondary" />
               </div>
               <div>
-                <h1 className="font-display text-xl font-bold tracking-tight">
-                  GovMonitor<span className="text-[#FF9933]">.org</span>
+                <h1 className="text-xl font-bold tracking-tight">
+                  GovMonitor<span className="text-primary">.org</span>
                 </h1>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/50 font-body">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   Civic Transparency Initiative
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-6">
-              <a href="#features" className="text-sm text-white/70 hover:text-white transition-colors font-body">
+              <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Features
               </a>
-              <a href="#tenders" className="text-sm text-white/70 hover:text-white transition-colors font-body">
+              <a href="#tenders" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Tender Watch
               </a>
               <Button
                 onClick={onEnterDashboard}
-                className="bg-[#004080] hover:bg-[#003366] text-white font-body font-semibold"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 View Dashboard
               </Button>
@@ -247,12 +230,12 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] flex items-center hero-gradient">
+      <section className="relative min-h-[90vh] flex items-center bg-gradient-to-b from-accent/30 to-background">
         <GridPattern />
 
         {/* Floating Chakra decoration */}
         <div className="absolute right-[10%] top-[15%] opacity-5">
-          <AshokaChakra className="h-96 w-96" spinning />
+          <AshokaChakra className="h-96 w-96 text-secondary" spinning />
         </div>
 
         <div className="container mx-auto px-6 py-20 relative z-10">
@@ -260,29 +243,29 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
             {/* Left content */}
             <div className={`space-y-8 ${isVisible ? "animate-slide-up" : "opacity-0"}`}>
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-full shadow-sm">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="text-sm font-body text-white/80">
+                <span className="text-sm text-muted-foreground">
                   Monitoring 150+ Government Websites
                 </span>
               </div>
 
               {/* Headline */}
               <div className="space-y-4">
-                <h1 className="font-display text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
-                  <span className="gradient-text">Transparency</span>
+                <h1 className="text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
+                  <span className="text-foreground">Transparency</span>
                   <br />
-                  <span className="text-white">for India's</span>
+                  <span className="text-foreground">for India's</span>
                   <br />
-                  <span className="text-[#FF9933]">Digital</span>{" "}
-                  <span className="text-[#138808]">Governance</span>
+                  <span className="text-primary">Digital</span>{" "}
+                  <span className="text-secondary">Governance</span>
                 </h1>
               </div>
 
-              <p className="text-lg lg:text-xl text-white/60 font-body leading-relaxed max-w-xl">
+              <p className="text-lg lg:text-xl text-muted-foreground leading-relaxed max-w-xl">
                 Real-time uptime monitoring for Indian government portals.
                 Track tender websites, state services, and critical infrastructure
                 with precision and accountability.
@@ -293,7 +276,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                 <Button
                   onClick={onEnterDashboard}
                   size="lg"
-                  className="bg-gradient-to-r from-[#FF9933] to-[#FF6600] hover:from-[#FF6600] hover:to-[#FF9933] text-white font-body font-semibold text-lg px-8 py-6 shadow-lg shadow-orange-500/20"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg px-8 py-6 shadow-lg"
                 >
                   Explore Dashboard
                   <ChevronRight className="ml-2 h-5 w-5" />
@@ -301,7 +284,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/20 text-white hover:bg-white/10 font-body px-8 py-6"
+                  className="border-border text-foreground hover:bg-accent px-8 py-6"
                   onClick={() => document.getElementById("tenders")?.scrollIntoView({ behavior: "smooth" })}
                 >
                   <FileText className="mr-2 h-5 w-5" />
@@ -311,16 +294,16 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
 
               {/* Trust indicators */}
               <div className="flex items-center gap-8 pt-4">
-                <div className="flex items-center gap-2 text-white/50 font-body text-sm">
-                  <Shield className="h-4 w-4 text-emerald-400" />
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Shield className="h-4 w-4 text-secondary" />
                   <span>Open Source</span>
                 </div>
-                <div className="flex items-center gap-2 text-white/50 font-body text-sm">
-                  <Clock className="h-4 w-4 text-blue-400" />
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Clock className="h-4 w-4 text-primary" />
                   <span>24/7 Monitoring</span>
                 </div>
-                <div className="flex items-center gap-2 text-white/50 font-body text-sm">
-                  <Bell className="h-4 w-4 text-amber-400" />
+                <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <Bell className="h-4 w-4 text-primary" />
                   <span>Instant Alerts</span>
                 </div>
               </div>
@@ -329,29 +312,26 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
             {/* Right content - Live status visualization */}
             <div className={`relative ${isVisible ? "animate-slide-up delay-200" : "opacity-0"}`}>
               <div className="relative">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-[#004080]/30 to-[#138808]/30 blur-3xl" />
-
                 {/* Main card */}
-                <div className="relative bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                <div className="relative bg-card border border-border rounded-3xl p-8 shadow-xl">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
-                      <Activity className="h-6 w-6 text-emerald-400" />
-                      <span className="font-body font-semibold">Live Status</span>
+                      <Activity className="h-6 w-6 text-emerald-500" />
+                      <span className="font-semibold text-foreground">Live Status</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-xs text-white/50 font-body">Real-time</span>
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs text-muted-foreground">Real-time</span>
                     </div>
                   </div>
 
                   {/* Mini India Map placeholder */}
-                  <div className="relative h-48 mb-6 rounded-xl overflow-hidden bg-[#0a1628]/50 flex items-center justify-center">
+                  <div className="relative h-48 mb-6 rounded-xl overflow-hidden bg-muted/30 flex items-center justify-center">
                     <div className="text-center">
-                      <Map className="h-16 w-16 text-[#004080] mx-auto mb-2 opacity-50" />
-                      <p className="text-sm text-white/40 font-body">Interactive State Map</p>
-                      <p className="text-xs text-white/30 font-body">28 States & 8 UTs</p>
+                      <Map className="h-16 w-16 text-secondary mx-auto mb-2 opacity-50" />
+                      <p className="text-sm text-muted-foreground">Interactive State Map</p>
+                      <p className="text-xs text-muted-foreground/70">28 States & 8 UTs</p>
                     </div>
                     {/* Pulse indicators on map */}
                     <div className="absolute top-[30%] left-[40%]">
@@ -359,8 +339,8 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
                     </div>
                     <div className="absolute top-[50%] left-[60%]">
-                      <span className="absolute inline-flex h-3 w-3 rounded-full bg-amber-400 animate-pulse-ring" style={{ animationDelay: "0.5s" }} />
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
+                      <span className="absolute inline-flex h-3 w-3 rounded-full bg-primary animate-pulse-ring" style={{ animationDelay: "0.5s" }} />
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-primary" />
                     </div>
                     <div className="absolute top-[70%] left-[45%]">
                       <span className="absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 animate-pulse-ring" style={{ animationDelay: "1s" }} />
@@ -370,26 +350,26 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
 
                   {/* Quick stats */}
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 bg-white/5 rounded-xl">
+                    <div className="text-center p-3 bg-emerald-500/10 rounded-xl">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                       </div>
-                      <div className="text-2xl font-display font-bold text-emerald-400">142</div>
-                      <div className="text-xs text-white/50 font-body">Online</div>
+                      <div className="text-2xl font-bold text-emerald-600">142</div>
+                      <div className="text-xs text-muted-foreground">Online</div>
                     </div>
-                    <div className="text-center p-3 bg-white/5 rounded-xl">
+                    <div className="text-center p-3 bg-red-500/10 rounded-xl">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        <AlertTriangle className="h-4 w-4 text-red-400" />
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
                       </div>
-                      <div className="text-2xl font-display font-bold text-red-400">8</div>
-                      <div className="text-xs text-white/50 font-body">Down</div>
+                      <div className="text-2xl font-bold text-red-600">8</div>
+                      <div className="text-xs text-muted-foreground">Down</div>
                     </div>
-                    <div className="text-center p-3 bg-white/5 rounded-xl">
+                    <div className="text-center p-3 bg-accent rounded-xl">
                       <div className="flex items-center justify-center gap-1 mb-1">
-                        <Zap className="h-4 w-4 text-amber-400" />
+                        <Zap className="h-4 w-4 text-primary" />
                       </div>
-                      <div className="text-2xl font-display font-bold text-white">234<span className="text-sm">ms</span></div>
-                      <div className="text-xs text-white/50 font-body">Avg Latency</div>
+                      <div className="text-2xl font-bold text-foreground">234<span className="text-sm">ms</span></div>
+                      <div className="text-xs text-muted-foreground">Avg Latency</div>
                     </div>
                   </div>
                 </div>
@@ -400,57 +380,57 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </section>
 
       {/* Stats Section */}
-      <section className="relative py-20 border-y border-white/10 bg-[#0d1d33]">
+      <section className="relative py-20 border-y border-border bg-card">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div ref={websitesCounter.ref} className="text-center">
-              <div className="font-display text-5xl lg:text-6xl font-bold text-white mb-2">
+              <div className="text-5xl lg:text-6xl font-bold text-foreground mb-2">
                 {websitesCounter.count}+
               </div>
-              <div className="text-white/50 font-body">Websites Monitored</div>
+              <div className="text-muted-foreground">Websites Monitored</div>
             </div>
             <div ref={checksCounter.ref} className="text-center">
-              <div className="font-display text-5xl lg:text-6xl font-bold text-[#FF9933] mb-2">
+              <div className="text-5xl lg:text-6xl font-bold text-primary mb-2">
                 {(checksCounter.count / 1000000).toFixed(1)}M+
               </div>
-              <div className="text-white/50 font-body">Health Checks</div>
+              <div className="text-muted-foreground">Health Checks</div>
             </div>
             <div ref={uptimeCounter.ref} className="text-center">
-              <div className="font-display text-5xl lg:text-6xl font-bold text-emerald-400 mb-2">
+              <div className="text-5xl lg:text-6xl font-bold text-emerald-500 mb-2">
                 {(uptimeCounter.count / 100).toFixed(2)}%
               </div>
-              <div className="text-white/50 font-body">Average Uptime</div>
+              <div className="text-muted-foreground">Average Uptime</div>
             </div>
             <div ref={statesCounter.ref} className="text-center">
-              <div className="font-display text-5xl lg:text-6xl font-bold text-[#138808] mb-2">
+              <div className="text-5xl lg:text-6xl font-bold text-secondary mb-2">
                 {statesCounter.count}
               </div>
-              <div className="text-white/50 font-body">States Covered</div>
+              <div className="text-muted-foreground">States Covered</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Tender Focus Section */}
-      <section id="tenders" className="relative py-24 bg-gradient-to-b from-[#0d1d33] to-[#0a1628]">
+      <section id="tenders" className="relative py-24 bg-gradient-to-b from-background to-accent/20">
         <div className="container mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left - Content */}
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                <FileText className="h-4 w-4 text-amber-400" />
-                <span className="text-sm font-body text-amber-400">Tender Watch</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
+                <FileText className="h-4 w-4 text-primary" />
+                <span className="text-sm text-primary font-medium">Tender Watch</span>
               </div>
 
-              <h2 className="font-display text-4xl lg:text-5xl font-bold leading-tight">
+              <h2 className="text-4xl lg:text-5xl font-bold leading-tight">
                 Never Miss a
                 <br />
-                <span className="text-[#FF9933]">Government Tender</span>
+                <span className="text-primary">Government Tender</span>
               </h2>
 
-              <p className="text-lg text-white/60 font-body leading-relaxed">
-                Critical procurement portals like <strong className="text-white">eProcure.gov.in</strong>,
-                <strong className="text-white"> GeM Portal</strong>, and state tender websites
+              <p className="text-lg text-muted-foreground leading-relaxed">
+                Critical procurement portals like <strong className="text-foreground">eProcure.gov.in</strong>,
+                <strong className="text-foreground"> GeM Portal</strong>, and state tender websites
                 experience frequent outages during bid submission deadlines.
               </p>
 
@@ -462,17 +442,17 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                   "State-wise tender portal tracking",
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="h-6 w-6 rounded-full bg-amber-500/20 flex items-center justify-center">
-                      <CheckCircle2 className="h-4 w-4 text-amber-400" />
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
                     </div>
-                    <span className="text-white/80 font-body">{item}</span>
+                    <span className="text-foreground">{item}</span>
                   </div>
                 ))}
               </div>
 
               <Button
                 onClick={onEnterDashboard}
-                className="bg-amber-500 hover:bg-amber-600 text-black font-body font-semibold"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
               >
                 Monitor Tender Portals
                 <ChevronRight className="ml-2 h-4 w-4" />
@@ -481,7 +461,6 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
 
             {/* Right - Tender Card */}
             <div className="relative">
-              <div className="absolute inset-0 bg-amber-500/10 blur-3xl" />
               <TenderCard />
             </div>
           </div>
@@ -489,13 +468,13 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="relative py-24">
+      <section id="features" className="relative py-24 bg-card">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
-            <h2 className="font-display text-4xl lg:text-5xl font-bold mb-4">
-              Built for <span className="text-[#FF9933]">Accountability</span>
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4">
+              Built for <span className="text-primary">Accountability</span>
             </h2>
-            <p className="text-lg text-white/50 font-body max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Comprehensive monitoring tools designed to ensure government digital
               services remain accessible to all citizens.
             </p>
@@ -507,54 +486,54 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                 icon: Activity,
                 title: "Real-Time Monitoring",
                 description: "Continuous health checks every minute with instant status updates across all monitored websites.",
-                color: "text-emerald-400",
+                color: "text-emerald-500",
                 bg: "bg-emerald-500/10",
               },
               {
                 icon: Map,
                 title: "State-Wise Dashboard",
                 description: "Interactive India map showing uptime statistics organized by state and union territory.",
-                color: "text-blue-400",
+                color: "text-blue-500",
                 bg: "bg-blue-500/10",
               },
               {
                 icon: Bell,
                 title: "Instant Alerts",
                 description: "Get notified immediately when critical government portals experience downtime.",
-                color: "text-amber-400",
-                bg: "bg-amber-500/10",
+                color: "text-primary",
+                bg: "bg-primary/10",
               },
               {
                 icon: TrendingUp,
                 title: "Historical Data",
                 description: "Access detailed uptime history and performance trends over days, weeks, and months.",
-                color: "text-purple-400",
+                color: "text-purple-500",
                 bg: "bg-purple-500/10",
               },
               {
                 icon: Shield,
                 title: "Open & Transparent",
                 description: "All data is publicly accessible. No hidden metrics. Complete transparency.",
-                color: "text-cyan-400",
-                bg: "bg-cyan-500/10",
+                color: "text-secondary",
+                bg: "bg-secondary/10",
               },
               {
                 icon: FileText,
                 title: "Tender Focus",
                 description: "Special monitoring for procurement portals with deadline-aware alerting.",
-                color: "text-orange-400",
-                bg: "bg-orange-500/10",
+                color: "text-primary",
+                bg: "bg-primary/10",
               },
             ].map((feature, i) => (
               <div
                 key={i}
-                className="group relative p-8 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-all duration-300"
+                className="group relative p-8 bg-background border border-border rounded-2xl hover:shadow-lg transition-all duration-300"
               >
                 <div className={`inline-flex p-3 ${feature.bg} rounded-xl mb-6`}>
                   <feature.icon className={`h-6 w-6 ${feature.color}`} />
                 </div>
-                <h3 className="font-display text-xl font-semibold mb-3">{feature.title}</h3>
-                <p className="text-white/50 font-body leading-relaxed">{feature.description}</p>
+                <h3 className="text-xl font-semibold mb-3 text-foreground">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -562,21 +541,21 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-24 bg-gradient-to-t from-[#0d1d33] to-transparent">
+      <section className="relative py-24 bg-gradient-to-t from-accent/30 to-background">
         <div className="container mx-auto px-6">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#004080] to-[#002855] p-12 lg:p-20">
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary to-primary/80 p-12 lg:p-20">
             {/* Background decoration */}
             <div className="absolute right-0 top-0 opacity-10">
-              <AshokaChakra className="h-80 w-80 -translate-y-20 translate-x-20" spinning />
+              <AshokaChakra className="h-80 w-80 -translate-y-20 translate-x-20 text-white" spinning />
             </div>
 
             <div className="relative z-10 max-w-2xl">
-              <h2 className="font-display text-3xl lg:text-5xl font-bold mb-6">
+              <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-white">
                 Start Monitoring
                 <br />
-                <span className="text-[#FF9933]">Government Services</span>
+                <span className="text-white/90">Government Services</span>
               </h2>
-              <p className="text-lg text-white/70 font-body mb-8">
+              <p className="text-lg text-white/80 mb-8">
                 Join citizens and organizations tracking the reliability of India's
                 digital governance infrastructure. Free, open, and transparent.
               </p>
@@ -584,7 +563,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                 <Button
                   onClick={onEnterDashboard}
                   size="lg"
-                  className="bg-[#FF9933] hover:bg-[#FF6600] text-black font-body font-semibold text-lg px-8"
+                  className="bg-white hover:bg-white/90 text-primary font-semibold text-lg px-8"
                 >
                   Access Dashboard
                   <ChevronRight className="ml-2 h-5 w-5" />
@@ -592,7 +571,7 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/30 text-white hover:bg-white/10 font-body px-8"
+                  className="border-white/30 text-white hover:bg-white/10 px-8"
                 >
                   Learn More
                 </Button>
@@ -603,23 +582,23 @@ export function LandingPage({ onEnterDashboard }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-12">
+      <footer className="border-t border-border py-12 bg-card">
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <AshokaChakra className="h-8 w-8 text-[#004080]" />
+              <AshokaChakra className="h-8 w-8 text-secondary" />
               <div>
-                <span className="font-display font-bold">GovMonitor.org</span>
-                <p className="text-xs text-white/40 font-body">A Civic Transparency Initiative</p>
+                <span className="font-bold text-foreground">GovMonitor.org</span>
+                <p className="text-xs text-muted-foreground">A Civic Transparency Initiative</p>
               </div>
             </div>
-            <p className="text-sm text-white/40 font-body">
+            <p className="text-sm text-muted-foreground">
               Open source project for monitoring Indian government digital services
             </p>
-            <div className="flex items-center gap-6 text-sm text-white/50 font-body">
-              <a href="#" className="hover:text-white transition-colors">GitHub</a>
-              <a href="#" className="hover:text-white transition-colors">API</a>
-              <a href="#" className="hover:text-white transition-colors">About</a>
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition-colors">GitHub</a>
+              <a href="#" className="hover:text-foreground transition-colors">API</a>
+              <a href="#" className="hover:text-foreground transition-colors">About</a>
             </div>
           </div>
         </div>

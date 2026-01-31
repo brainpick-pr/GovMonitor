@@ -5,19 +5,23 @@ compatibility_flags = ["nodejs_compat"]
 
 # Worker configuration
 workers_dev = true
-route = ""
-zone_id = ""
 
 # D1 Database binding
 [[d1_databases]]
 binding = "DB"
 database_name = "govmonitor-db"
-database_id = "" # Will be populated after: wrangler d1 create govmonitor-db
+database_id = "30131266-de64-48fe-a8b5-4f3472a93c92"
 
 # KV namespace for fast status lookups
 [[kv_namespaces]]
 binding = "KV"
-id = "" # Will be populated after: wrangler kv:namespace create "GOVMONITOR_KV"
+id = "d09e53df3b1a4d88a68d7af10e760e87"
+
+# R2 bucket for screenshot uploads
+# Enable R2 in Cloudflare Dashboard first, then uncomment:
+# [[r2_buckets]]
+# binding = "SCREENSHOTS"
+# bucket_name = "govmonitor-screenshots"
 
 # Cron triggers for uptime checks
 # Multiple intervals to support flexible checking
@@ -52,12 +56,13 @@ REQUIRE_AUTH_FOR_READS = "false"  # Set to "true" to require auth for GET reques
 # Read-only API keys (comma-separated, for monitoring access):
 #   wrangler secret put READ_ONLY_API_KEYS
 #
+# Google OAuth credentials (for user authentication):
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+#
 # Example usage:
 #   curl -H "Authorization: Bearer YOUR_API_KEY" https://api.govmonitor.org/api/targets
 
 # Build configuration
 [build]
 command = "npm install && npm run build"
-
-[build.upload]
-format = "service-worker"

@@ -10,6 +10,13 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 type CheckMode = 'website' | 'api-json' | 'api-text';
 
@@ -78,7 +85,7 @@ export function AddTargetDialog({
 
   const [name, setName] = useState("")
   const [url, setUrl] = useState("")
-  const [interval, setInterval] = useState(15)
+  const [interval, setInterval] = useState("15")
   const [state, setState] = useState("")
   const [checkMode, setCheckMode] = useState<CheckMode>("website")
   const [expectedStatus, setExpectedStatus] = useState(200)
@@ -113,7 +120,7 @@ export function AddTargetDialog({
       await onAdd(
         name,
         url,
-        interval,
+        Number(interval),
         state,
         checkMode,
         expectedStatus,
@@ -123,7 +130,7 @@ export function AddTargetDialog({
       )
       setName("")
       setUrl("")
-      setInterval(15)
+      setInterval("15")
       setState("")
       setCheckMode("website")
       setExpectedStatus(200)
@@ -175,51 +182,49 @@ export function AddTargetDialog({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="interval">Check Interval (minutes)</Label>
-              <select
-                id="interval"
-                value={interval}
-                onChange={(e) => setInterval(Number(e.target.value))}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value={5}>5 minutes</option>
-                <option value={10}>10 minutes</option>
-                <option value={15}>15 minutes</option>
-                <option value={30}>30 minutes</option>
-                <option value={60}>60 minutes</option>
-              </select>
+              <Label>Check Interval</Label>
+              <Select value={interval} onValueChange={setInterval}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select interval" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 minutes</SelectItem>
+                  <SelectItem value="10">10 minutes</SelectItem>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="60">60 minutes</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="state">State / UT</Label>
-              <select
-                id="state"
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                required
-              >
-                <option value="">Select a state</option>
-                {indianStates.map((stateName) => (
-                  <option key={stateName} value={stateName}>
-                    {stateName}
-                  </option>
-                ))}
-              </select>
+              <Label>State / UT</Label>
+              <Select value={state} onValueChange={setState}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a state" />
+                </SelectTrigger>
+                <SelectContent>
+                  {indianStates.map((stateName) => (
+                    <SelectItem key={stateName} value={stateName}>
+                      {stateName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="checkMode">Check Type</Label>
-              <select
-                id="checkMode"
-                value={checkMode}
-                onChange={(e) => setCheckMode(e.target.value as CheckMode)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <option value="website">Website (HTTP status check)</option>
-                <option value="api-json">API JSON (validate JSON response)</option>
-                <option value="api-text">API Text (substring match)</option>
-              </select>
+              <Label>Check Type</Label>
+              <Select value={checkMode} onValueChange={(v) => setCheckMode(v as CheckMode)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select check type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="website">Website (HTTP status check)</SelectItem>
+                  <SelectItem value="api-json">API JSON (validate JSON response)</SelectItem>
+                  <SelectItem value="api-text">API Text (substring match)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
