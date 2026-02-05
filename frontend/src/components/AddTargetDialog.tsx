@@ -153,7 +153,7 @@ export function AddTargetDialog({
             <DialogTitle>Add Government Website</DialogTitle>
             <DialogDescription>
               Add a government website to monitor. Only .gov, .gov.*, .gc.ca,
-              and .government.* domains are allowed.
+              .government.*, and .nic.in domains are allowed.
             </DialogDescription>
           </DialogHeader>
 

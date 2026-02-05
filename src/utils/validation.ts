@@ -17,6 +17,7 @@ export function isGovernmentDomain(hostname: string): boolean {
     lower.endsWith('.gov.uk') ||
     lower.endsWith('.gov.au') ||
     lower.endsWith('.gc.ca') ||
+    lower.endsWith('.nic.in') ||
     lower.includes('.government.')
   );
 }

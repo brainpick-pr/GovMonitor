@@ -32,7 +32,7 @@ export async function handleManualCheck(
 
   // Import checkTarget dynamically to avoid circular dependencies
   const { checkTarget } = await import('../checks/checker');
-  const result = await checkTarget(target, env);
+  const result = await checkTarget(target, env, 'manual', request);
 
   return new Response(JSON.stringify(result), { headers });
 }

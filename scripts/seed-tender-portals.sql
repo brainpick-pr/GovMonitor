@@ -1,6 +1,7 @@
 -- Seed data: Indian State Government Tender Portals
 -- Real government eProcurement websites for each state/UT
--- Only using .gov.in and .nic.in (government) domains
+-- Using .gov.in and .nic.in (government) domains
+-- Last verified: February 6, 2026
 
 -- Clear existing test data
 DELETE FROM checks;
@@ -24,16 +25,16 @@ INSERT INTO targets (name, url, hostname, state, interval_min, enabled) VALUES
 ('Assam eTenders', 'https://assamtenders.gov.in', 'assamtenders.gov.in', 'Assam', 15, 1),
 
 -- Bihar
-('Bihar eProcurement', 'https://eproc.bihar.gov.in', 'eproc.bihar.gov.in', 'Bihar', 15, 1),
+('Bihar eProcurement', 'https://eproc2.bihar.gov.in', 'eproc2.bihar.gov.in', 'Bihar', 15, 1),
 
 -- Chhattisgarh
 ('CG eProcurement', 'https://eproc.cgstate.gov.in', 'eproc.cgstate.gov.in', 'Chhattisgarh', 15, 1),
 
 -- Goa
-('Goa eTenders', 'https://goaenivida.gov.in', 'goaenivida.gov.in', 'Goa', 15, 1),
+('Goa eProcurement', 'https://eprocure.goa.gov.in', 'eprocure.goa.gov.in', 'Goa', 15, 1),
 
 -- Haryana
-('Haryana eTenders', 'https://etenders.hry.gov.in', 'etenders.hry.gov.in', 'Haryana', 15, 1),
+('Haryana eTenders', 'https://etenders.hry.nic.in', 'etenders.hry.nic.in', 'Haryana', 15, 1),
 
 -- Himachal Pradesh
 ('HP eTenders', 'https://hptenders.gov.in', 'hptenders.gov.in', 'Himachal Pradesh', 15, 1),
@@ -78,13 +79,13 @@ INSERT INTO targets (name, url, hostname, state, interval_min, enabled) VALUES
 ('TN Tenders', 'https://tntenders.gov.in', 'tntenders.gov.in', 'Tamil Nadu', 15, 1),
 
 -- Telangana
-('Telangana Tenders', 'https://tender.telangana.gov.in', 'tender.telangana.gov.in', 'Telangana', 15, 1),
+('Telangana eProcurement', 'https://eprocurement.telangana.gov.in', 'eprocurement.telangana.gov.in', 'Telangana', 15, 1),
 
 -- Tripura
 ('Tripura eTenders', 'https://tripuratenders.gov.in', 'tripuratenders.gov.in', 'Tripura', 15, 1),
 
 -- Uttar Pradesh
-('UP eTender', 'https://etender.up.gov.in', 'etender.up.gov.in', 'Uttar Pradesh', 15, 1),
+('UP eTender', 'https://etender.up.nic.in', 'etender.up.nic.in', 'Uttar Pradesh', 15, 1),
 
 -- Uttarakhand
 ('UK Tenders', 'https://uktenders.gov.in', 'uktenders.gov.in', 'Uttarakhand', 15, 1),
@@ -101,13 +102,13 @@ INSERT INTO targets (name, url, hostname, state, interval_min, enabled) VALUES
 ('JK eTenders', 'https://jktenders.gov.in', 'jktenders.gov.in', 'Jammu and Kashmir', 15, 1),
 
 -- Puducherry
-('Puducherry eTenders', 'https://tenders.py.gov.in', 'tenders.py.gov.in', 'Puducherry', 15, 1),
+('Puducherry eTenders', 'https://pudutenders.gov.in', 'pudutenders.gov.in', 'Puducherry', 15, 1),
 
 -- Chandigarh
-('Chandigarh eTenders', 'https://etenders.chd.gov.in', 'etenders.chd.gov.in', 'Chandigarh', 15, 1),
+('Chandigarh eTenders', 'https://etenders.chd.nic.in', 'etenders.chd.nic.in', 'Chandigarh', 15, 1),
 
 -- Andaman and Nicobar
-('A&N eTenders', 'https://andamantenders.gov.in', 'andamantenders.gov.in', 'Andaman and Nicobar Islands', 15, 1),
+('A&N eProcurement', 'https://eprocure.andamannicobar.gov.in', 'eprocure.andamannicobar.gov.in', 'Andaman and Nicobar Islands', 15, 1),
 
 -- Ladakh
-('Ladakh eTenders', 'https://ladakhtenders.gov.in', 'ladakhtenders.gov.in', 'Ladakh', 15, 1);
+('Ladakh eTenders', 'https://tenders.ladakh.gov.in', 'tenders.ladakh.gov.in', 'Ladakh', 15, 1);

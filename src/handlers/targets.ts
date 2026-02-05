@@ -10,9 +10,15 @@ import { invalidateStatusCache } from '../utils/cache';
 
 export async function handleGetTargets(
   env: Env,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  includeDeleted: boolean = false
 ): Promise<Response> {
-  const result = await env.DB.prepare('SELECT * FROM targets ORDER BY name').all();
+  // By default, only return non-deleted targets
+  const query = includeDeleted
+    ? 'SELECT * FROM targets ORDER BY name'
+    : 'SELECT * FROM targets WHERE deleted_at IS NULL ORDER BY name';
+
+  const result = await env.DB.prepare(query).all();
   return new Response(JSON.stringify(result.results || []), { headers });
 }
 
@@ -74,7 +80,7 @@ export async function handleAddTarget(
   const hostname = parsedUrl.hostname.toLowerCase();
   if (!isGovernmentDomain(hostname)) {
     return new Response(
-      JSON.stringify({ error: 'Only government domains (.gov, .gov.*, .gc.ca, .government.*) are allowed' }),
+      JSON.stringify({ error: 'Only government domains (.gov, .gov.*, .gc.ca, .government.*, .nic.in) are allowed' }),
       { status: 400, headers }
     );
   }
@@ -143,12 +149,50 @@ export async function handleAddTarget(
 export async function handleDeleteTarget(
   id: string,
   env: Env,
-  headers: Record<string, string>
+  headers: Record<string, string>,
+  deletedBy?: string
 ): Promise<Response> {
-  await env.DB.prepare('DELETE FROM targets WHERE id = ?').bind(parseInt(id)).run();
+  const targetId = parseInt(id);
+  const now = Math.floor(Date.now() / 1000);
+
+  // Check if target exists and is not already deleted
+  const target = await env.DB.prepare('SELECT * FROM targets WHERE id = ? AND deleted_at IS NULL')
+    .bind(targetId)
+    .first();
+
+  if (!target) {
+    return new Response(
+      JSON.stringify({ error: 'Target not found or already deleted' }),
+      { status: 404, headers }
+    );
+  }
+
+  // Soft delete: mark as deleted instead of removing
+  await env.DB.prepare(`
+    UPDATE targets
+    SET deleted_at = ?, deleted_by = ?, enabled = 0, updated_at = ?
+    WHERE id = ?
+  `).bind(now, deletedBy || 'api', now, targetId).run();
+
+  // Log the deletion to target_history
+  await env.DB.prepare(`
+    INSERT INTO target_history (target_id, field_name, old_value, new_value, changed_by, reason, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    targetId,
+    'deleted_at',
+    'null',
+    now.toString(),
+    deletedBy || 'api',
+    'target_deleted',
+    now
+  ).run();
 
   // Invalidate cache
   await invalidateStatusCache(env.KV);
 
-  return new Response(JSON.stringify({ success: true }), { headers });
+  return new Response(JSON.stringify({
+    success: true,
+    message: 'Target soft-deleted successfully. Historical data preserved.'
+  }), { headers });
 }

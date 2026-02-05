@@ -10,8 +10,14 @@ import { checkApiText } from './modes/api-text';
 import { isInMaintenanceWindow, logMaintenanceSkip } from '../maintenance/windows';
 import { updateSchedulingMetrics } from '../scheduling/metrics';
 import { storeCheckResult } from '../data/checks';
+import { buildCheckMetadata } from '../utils/metadata';
 
-export async function checkTarget(target: Target, env: Env): Promise<CheckResult | null> {
+export async function checkTarget(
+  target: Target,
+  env: Env,
+  trigger: 'cron' | 'manual' | 'backfill' = 'cron',
+  request?: Request
+): Promise<CheckResult | null> {
   const startTime = Date.now();
   const timeout = parseInt(env.TIMEOUT_MS || '5000');
   const userAgent = env.USER_AGENT || 'GovMonitorBot/1.0';
@@ -91,8 +97,11 @@ export async function checkTarget(target: Target, env: Env): Promise<CheckResult
     }));
   }
 
-  // Store result in D1 (with encryption)
-  const checkId = await storeCheckResult(target.id, result, env);
+  // Build metadata for event tracking
+  const metadata = buildCheckMetadata(trigger, request);
+
+  // Store result in D1 (with encryption and metadata)
+  const checkId = await storeCheckResult(target.id, result, env, metadata);
 
   // Update scheduling metrics for smart scheduling
   try {

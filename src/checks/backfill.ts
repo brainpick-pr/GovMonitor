@@ -51,8 +51,8 @@ export async function runBackfillCheck(env: Env, now: number): Promise<void> {
           'UPDATE targets SET next_check_at = ? WHERE id = ?'
         ).bind(now + (target.interval_min * 60), target.id).run();
 
-        // Perform the check
-        return checkTarget(target, env);
+        // Perform the check with backfill trigger
+        return checkTarget(target, env, 'backfill');
       })
     );
 

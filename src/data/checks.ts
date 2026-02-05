@@ -4,6 +4,7 @@
 
 import { encrypt, decrypt } from '../crypto';
 import type { Env, CheckResult } from '../types';
+import type { CheckMetadata } from '../utils/metadata';
 
 export interface StoredCheck {
   id: number;
@@ -14,15 +15,17 @@ export interface StoredCheck {
   latency_ms: number | null;
   error: string | null;
   error_encrypted: number;
+  metadata: string | null;
 }
 
 /**
- * Store check result with encrypted error message
+ * Store check result with encrypted error message and metadata
  */
 export async function storeCheckResult(
   targetId: number,
   result: CheckResult,
-  env: Env
+  env: Env,
+  metadata?: CheckMetadata
 ): Promise<number> {
   const now = Math.floor(Date.now() / 1000);
 
@@ -47,9 +50,12 @@ export async function storeCheckResult(
     }
   }
 
+  // Serialize metadata to JSON
+  const metadataJson = metadata ? JSON.stringify(metadata) : null;
+
   const checkInsertResult = await env.DB.prepare(`
-    INSERT INTO checks (target_id, ts, ok, status, latency_ms, error, error_encrypted)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO checks (target_id, ts, ok, status, latency_ms, error, error_encrypted, metadata)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING id
   `).bind(
     targetId,
@@ -58,7 +64,8 @@ export async function storeCheckResult(
     result.status || null,
     result.latency_ms || null,
     errorValue,
-    errorEncrypted
+    errorEncrypted,
+    metadataJson
   ).first<{ id: number }>();
 
   return checkInsertResult?.id || 0;
@@ -73,7 +80,7 @@ export async function getCheckHistory(
   env: Env
 ): Promise<any[]> {
   const results = await env.DB.prepare(`
-    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted
+    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted, metadata
     FROM checks
     WHERE target_id = ?
     ORDER BY ts DESC
@@ -109,7 +116,7 @@ export async function getLatestCheck(
   env: Env
 ): Promise<StoredCheck | null> {
   const result = await env.DB.prepare(`
-    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted
+    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted, metadata
     FROM checks
     WHERE target_id = ?
     ORDER BY ts DESC
@@ -145,7 +152,7 @@ export async function getChecksByTimeRange(
   env: Env
 ): Promise<StoredCheck[]> {
   const results = await env.DB.prepare(`
-    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted
+    SELECT id, target_id, ts, ok, status, latency_ms, error, error_encrypted, metadata
     FROM checks
     WHERE target_id = ? AND ts >= ? AND ts <= ?
     ORDER BY ts DESC

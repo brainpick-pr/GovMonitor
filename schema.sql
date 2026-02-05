@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS targets (
         hostname LIKE '%.gov' OR
         hostname LIKE '%.gov.%' OR
         hostname LIKE '%.gc.ca' OR
-        hostname LIKE '%.government.%'
+        hostname LIKE '%.government.%' OR
+        hostname LIKE '%.nic.in'
     )
 );
 

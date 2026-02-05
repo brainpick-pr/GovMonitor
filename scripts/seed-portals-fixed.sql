@@ -22,7 +22,7 @@ VALUES
 INSERT OR IGNORE INTO targets (name, url, hostname, state, interval_min, enabled, category, description, department)
 VALUES
   ('UIDAI Aadhaar', 'https://uidai.gov.in', 'uidai.gov.in', 'Central', 5, 1, 'identity', 'Unique Identification Authority of India', 'UIDAI'),
-  ('Voter Portal NVSP', 'https://www.nvsp.in', 'www.nvsp.in', 'Central', 10, 1, 'identity', 'National Voter Services Portal', 'ECI'),
+  ('Voter Portal NVSP', 'https://voters.eci.gov.in', 'voters.eci.gov.in', 'Central', 10, 1, 'identity', 'National Voter Services Portal', 'ECI'),
   ('Birth Certificate Portal', 'https://crsorgi.gov.in', 'crsorgi.gov.in', 'Central', 15, 1, 'identity', 'Civil Registration System', 'RGI');
 
 -- ============================================================================
@@ -34,7 +34,7 @@ VALUES
   ('EPFO', 'https://www.epfindia.gov.in', 'www.epfindia.gov.in', 'Central', 5, 1, 'financial', 'Employees Provident Fund Organisation', 'Ministry of Labour'),
   ('Income Tax Portal', 'https://www.incometax.gov.in', 'www.incometax.gov.in', 'Central', 5, 1, 'financial', 'Income Tax e-Filing portal', 'CBDT'),
   ('GST Portal', 'https://www.gst.gov.in', 'www.gst.gov.in', 'Central', 5, 1, 'financial', 'Goods and Services Tax Network', 'GSTN'),
-  ('NPS Portal', 'https://www.npscra.nsdl.co.in', 'www.npscra.nsdl.co.in', 'Central', 10, 1, 'financial', 'National Pension System', 'PFRDA'),
+  ('NPS Portal', 'https://www.npscra.proteantech.in', 'www.npscra.proteantech.in', 'Central', 10, 1, 'financial', 'National Pension System', 'PFRDA'),
   ('PM Kisan', 'https://pmkisan.gov.in', 'pmkisan.gov.in', 'Central', 10, 1, 'financial', 'PM Kisan Samman Nidhi scheme', 'Ministry of Agriculture');
 
 -- ============================================================================
@@ -90,7 +90,7 @@ VALUES
 
   -- State Tender Portals
   ('Maharashtra eTendering', 'https://mahatenders.gov.in', 'mahatenders.gov.in', 'Maharashtra', 10, 1, 'tender', 'Maharashtra State eProcurement', 'IT Dept'),
-  ('Gujarat eProcurement', 'https://www.nprocure.com', 'www.nprocure.com', 'Gujarat', 10, 1, 'tender', 'Gujarat State eProcurement', 'IT Dept'),
+  ('Gujarat eProcurement', 'https://tender.nprocure.com', 'tender.nprocure.com', 'Gujarat', 10, 1, 'tender', 'Gujarat State eProcurement', 'IT Dept'),
   ('Karnataka eProcurement', 'https://eproc.karnataka.gov.in', 'eproc.karnataka.gov.in', 'Karnataka', 10, 1, 'tender', 'Karnataka State eProcurement', 'IT Dept'),
   ('Tamil Nadu eTendering', 'https://tntenders.gov.in', 'tntenders.gov.in', 'Tamil Nadu', 10, 1, 'tender', 'Tamil Nadu State eProcurement', 'IT Dept'),
   ('Rajasthan eProcurement', 'https://eproc.rajasthan.gov.in', 'eproc.rajasthan.gov.in', 'Rajasthan', 10, 1, 'tender', 'Rajasthan State eProcurement', 'IT Dept'),
@@ -102,14 +102,14 @@ VALUES
   ('West Bengal eTender', 'https://wbtenders.gov.in', 'wbtenders.gov.in', 'West Bengal', 10, 1, 'tender', 'West Bengal eProcurement', 'IT Dept'),
   ('Punjab eProcurement', 'https://eproc.punjab.gov.in', 'eproc.punjab.gov.in', 'Punjab', 10, 1, 'tender', 'Punjab State eProcurement', 'IT Dept'),
   ('Haryana eProcurement', 'https://etenders.hry.nic.in', 'etenders.hry.nic.in', 'Haryana', 10, 1, 'tender', 'Haryana State eProcurement', 'IT Dept'),
-  ('Bihar eProcurement', 'https://eproc.bihar.gov.in', 'eproc.bihar.gov.in', 'Bihar', 10, 1, 'tender', 'Bihar State eProcurement', 'IT Dept'),
+  ('Bihar eProcurement', 'https://eproc2.bihar.gov.in', 'eproc2.bihar.gov.in', 'Bihar', 10, 1, 'tender', 'Bihar State eProcurement', 'IT Dept'),
   ('Odisha eProcurement', 'https://tendersodisha.gov.in', 'tendersodisha.gov.in', 'Odisha', 10, 1, 'tender', 'Odisha State eProcurement', 'IT Dept'),
   ('Jharkhand eProcurement', 'https://jharkhandtenders.gov.in', 'jharkhandtenders.gov.in', 'Jharkhand', 10, 1, 'tender', 'Jharkhand State eProcurement', 'IT Dept'),
   ('Chhattisgarh eProcurement', 'https://eproc.cgstate.gov.in', 'eproc.cgstate.gov.in', 'Chhattisgarh', 10, 1, 'tender', 'Chhattisgarh State eProcurement', 'IT Dept'),
   ('Assam eProcurement', 'https://assamtenders.gov.in', 'assamtenders.gov.in', 'Assam', 15, 1, 'tender', 'Assam State eProcurement', 'IT Dept'),
   ('Uttarakhand eProcurement', 'https://uktenders.gov.in', 'uktenders.gov.in', 'Uttarakhand', 15, 1, 'tender', 'Uttarakhand State eProcurement', 'IT Dept'),
   ('Himachal Pradesh eTender', 'https://hptenders.gov.in', 'hptenders.gov.in', 'Himachal Pradesh', 15, 1, 'tender', 'HP State eProcurement', 'IT Dept'),
-  ('Goa eProcurement', 'https://goaenivida.gov.in', 'goaenivida.gov.in', 'Goa', 15, 1, 'tender', 'Goa State eProcurement', 'IT Dept'),
+  ('Goa eProcurement', 'https://eprocure.goa.gov.in', 'eprocure.goa.gov.in', 'Goa', 15, 1, 'tender', 'Goa State eProcurement', 'IT Dept'),
   ('Delhi eProcurement', 'https://govtprocurement.delhi.gov.in', 'govtprocurement.delhi.gov.in', 'Delhi', 10, 1, 'tender', 'Delhi State eProcurement', 'IT Dept');
 
 -- ============================================================================
@@ -120,10 +120,10 @@ INSERT OR IGNORE INTO targets (name, url, hostname, state, interval_min, enabled
 VALUES
   ('BESCOM Karnataka', 'https://bescom.karnataka.gov.in', 'bescom.karnataka.gov.in', 'Karnataka', 10, 1, 'utility', 'Bangalore Electricity Supply Company', 'Energy Dept'),
   ('MSEDCL Maharashtra', 'https://www.mahadiscom.in', 'www.mahadiscom.in', 'Maharashtra', 10, 1, 'utility', 'Maharashtra State Electricity Distribution', 'Energy Dept'),
-  ('TANGEDCO Tamil Nadu', 'https://www.tnebnet.org', 'www.tnebnet.org', 'Tamil Nadu', 10, 1, 'utility', 'Tamil Nadu Generation and Distribution', 'Energy Dept'),
+  ('TANGEDCO Tamil Nadu', 'https://www.tangedco.org', 'www.tangedco.org', 'Tamil Nadu', 10, 1, 'utility', 'Tamil Nadu Generation and Distribution', 'Energy Dept'),
   ('APSPDCL Andhra', 'https://www.apspdcl.in', 'www.apspdcl.in', 'Andhra Pradesh', 10, 1, 'utility', 'AP Southern Power Distribution', 'Energy Dept'),
-  ('TSSPDCL Telangana', 'https://www.tssouthernpower.com', 'www.tssouthernpower.com', 'Telangana', 10, 1, 'utility', 'Telangana Southern Power Distribution', 'Energy Dept'),
-  ('UPPCL UP', 'https://www.uppclonline.com', 'www.uppclonline.com', 'Uttar Pradesh', 10, 1, 'utility', 'UP Power Corporation Ltd', 'Energy Dept'),
+  ('TGSPDCL Telangana', 'https://www.tgsouthernpower.org', 'www.tgsouthernpower.org', 'Telangana', 10, 1, 'utility', 'Telangana Southern Power Distribution', 'Energy Dept'),
+  ('UPPCL UP', 'https://www.uppcl.org', 'www.uppcl.org', 'Uttar Pradesh', 10, 1, 'utility', 'UP Power Corporation Ltd', 'Energy Dept'),
   ('PSPCL Punjab', 'https://www.pspcl.in', 'www.pspcl.in', 'Punjab', 10, 1, 'utility', 'Punjab State Power Corporation', 'Energy Dept'),
   ('DGVCL Gujarat', 'https://www.dgvcl.com', 'www.dgvcl.com', 'Gujarat', 10, 1, 'utility', 'Dakshin Gujarat Vij Company', 'Energy Dept'),
   ('KSEB Kerala', 'https://www.kseb.in', 'www.kseb.in', 'Kerala', 10, 1, 'utility', 'Kerala State Electricity Board', 'Energy Dept'),
@@ -136,11 +136,11 @@ VALUES
 INSERT OR IGNORE INTO targets (name, url, hostname, state, interval_min, enabled, category, description, department)
 VALUES
   ('KSRTC Karnataka', 'https://www.ksrtc.in', 'www.ksrtc.in', 'Karnataka', 15, 1, 'transport', 'Karnataka State Road Transport', 'Transport Dept'),
-  ('MSRTC Maharashtra', 'https://www.msrtc.gov.in', 'www.msrtc.gov.in', 'Maharashtra', 15, 1, 'transport', 'Maharashtra State Road Transport', 'Transport Dept'),
-  ('APSRTC Andhra', 'https://www.apsrtconline.in', 'www.apsrtconline.in', 'Andhra Pradesh', 15, 1, 'transport', 'Andhra Pradesh State Road Transport', 'Transport Dept'),
+  ('MSRTC Maharashtra', 'https://msrtc.maharashtra.gov.in', 'msrtc.maharashtra.gov.in', 'Maharashtra', 15, 1, 'transport', 'Maharashtra State Road Transport', 'Transport Dept'),
+  ('APSRTC Andhra', 'https://www.apsrtc.ap.gov.in', 'www.apsrtc.ap.gov.in', 'Andhra Pradesh', 15, 1, 'transport', 'Andhra Pradesh State Road Transport', 'Transport Dept'),
   ('TSRTC Telangana', 'https://www.tsrtconline.in', 'www.tsrtconline.in', 'Telangana', 15, 1, 'transport', 'Telangana State Road Transport', 'Transport Dept'),
   ('UPSRTC UP', 'https://www.upsrtconline.co.in', 'www.upsrtconline.co.in', 'Uttar Pradesh', 15, 1, 'transport', 'Uttar Pradesh State Road Transport', 'Transport Dept'),
-  ('RSRTC Rajasthan', 'https://rsrtc.rajasthan.gov.in', 'rsrtc.rajasthan.gov.in', 'Rajasthan', 15, 1, 'transport', 'Rajasthan State Road Transport', 'Transport Dept'),
+  ('RSRTC Rajasthan', 'https://transport.rajasthan.gov.in/rsrtc', 'transport.rajasthan.gov.in', 'Rajasthan', 15, 1, 'transport', 'Rajasthan State Road Transport', 'Transport Dept'),
   ('GSRTC Gujarat', 'https://www.gsrtc.in', 'www.gsrtc.in', 'Gujarat', 15, 1, 'transport', 'Gujarat State Road Transport', 'Transport Dept'),
   ('TNSTC Tamil Nadu', 'https://www.tnstc.in', 'www.tnstc.in', 'Tamil Nadu', 15, 1, 'transport', 'Tamil Nadu State Transport', 'Transport Dept'),
   ('KSRTC Kerala', 'https://www.keralartc.com', 'www.keralartc.com', 'Kerala', 15, 1, 'transport', 'Kerala State Road Transport', 'Transport Dept');
@@ -155,9 +155,9 @@ VALUES
   ('Bhumi Karnataka', 'https://landrecords.karnataka.gov.in', 'landrecords.karnataka.gov.in', 'Karnataka', 15, 1, 'land', 'Karnataka Land Records', 'Revenue Dept'),
   ('Mahabhulekh Maharashtra', 'https://bhulekh.mahabhumi.gov.in', 'bhulekh.mahabhumi.gov.in', 'Maharashtra', 15, 1, 'land', 'Maharashtra Land Records', 'Revenue Dept'),
   ('Patta Chitta Tamil Nadu', 'https://eservices.tn.gov.in', 'eservices.tn.gov.in', 'Tamil Nadu', 15, 1, 'land', 'Tamil Nadu Land Records', 'Revenue Dept'),
-  ('Dharani Telangana', 'https://dharani.telangana.gov.in', 'dharani.telangana.gov.in', 'Telangana', 15, 1, 'land', 'Telangana Integrated Land Records', 'Revenue Dept'),
+  ('BhuBharati Telangana', 'https://bhubharati.telangana.gov.in', 'bhubharati.telangana.gov.in', 'Telangana', 15, 1, 'land', 'Telangana Integrated Land Records', 'Revenue Dept'),
   ('Meebhoomi Andhra', 'https://meebhoomi.ap.gov.in', 'meebhoomi.ap.gov.in', 'Andhra Pradesh', 15, 1, 'land', 'Andhra Pradesh Land Records', 'Revenue Dept'),
-  ('Apna Khata Rajasthan', 'https://apnakhata.raj.nic.in', 'apnakhata.raj.nic.in', 'Rajasthan', 15, 1, 'land', 'Rajasthan Land Records', 'Revenue Dept'),
+  ('Apna Khata Rajasthan', 'https://apnakhata.rajasthan.gov.in', 'apnakhata.rajasthan.gov.in', 'Rajasthan', 15, 1, 'land', 'Rajasthan Land Records', 'Revenue Dept'),
   ('Anyror Gujarat', 'https://anyror.gujarat.gov.in', 'anyror.gujarat.gov.in', 'Gujarat', 15, 1, 'land', 'Gujarat Land Records', 'Revenue Dept'),
   ('Banglarbhumi West Bengal', 'https://banglarbhumi.gov.in', 'banglarbhumi.gov.in', 'West Bengal', 15, 1, 'land', 'West Bengal Land Records', 'Revenue Dept'),
   ('Bhunaksha MP', 'https://mpbhulekh.gov.in', 'mpbhulekh.gov.in', 'Madhya Pradesh', 15, 1, 'land', 'Madhya Pradesh Land Records', 'Revenue Dept');
@@ -170,4 +170,4 @@ INSERT OR IGNORE INTO targets (name, url, hostname, state, interval_min, enabled
 VALUES
   ('Vahan Parivahan', 'https://vahan.parivahan.gov.in', 'vahan.parivahan.gov.in', 'Central', 10, 1, 'transport', 'National Vehicle Registration', 'MoRTH'),
   ('Sarathi Parivahan', 'https://sarathi.parivahan.gov.in', 'sarathi.parivahan.gov.in', 'Central', 10, 1, 'transport', 'Driving License Services', 'MoRTH'),
-  ('mParivahan', 'https://m.parivahan.gov.in', 'm.parivahan.gov.in', 'Central', 10, 1, 'transport', 'Mobile Transport Services', 'MoRTH');
+  ('mParivahan', 'https://mparivahan.parivahan.gov.in', 'mparivahan.parivahan.gov.in', 'Central', 10, 1, 'transport', 'Mobile Transport Services', 'MoRTH');
