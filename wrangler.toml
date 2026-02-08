@@ -38,7 +38,7 @@ crons = [
 [vars]
 ENVIRONMENT = "production"
 USER_AGENT = "GovMonitorBot/1.0 (+https://govmonitor.org)"
-TIMEOUT_MS = "5000"
+TIMEOUT_MS = "15000"
 MAX_LATENCY_MS = "10000"
 
 # Authentication configuration

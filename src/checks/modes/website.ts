@@ -15,40 +15,16 @@ export async function checkWebsite(target: Target, options: CheckOptions): Promi
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), options.timeout);
 
-  const requestInit: RequestInit = {
-    method: 'HEAD',
+  const response = await fetch(target.url, {
+    method: 'GET',
     headers: { 'User-Agent': options.userAgent },
     signal: controller.signal,
     redirect: 'follow',
     cf: {
-      cacheTtl: 0, // Bypass cache for health checks
+      cacheTtl: 0,
     } as RequestInitCfProperties,
-  };
-
-  let response: Response;
-
-  try {
-    response = await fetch(target.url, requestInit);
-    clearTimeout(timeoutId);
-  } catch (fetchError) {
-    clearTimeout(timeoutId);
-
-    // Fallback to GET if HEAD not supported
-    if ((fetchError as Error).message.includes('405')) {
-      const getController = new AbortController();
-      const getTimeoutId = setTimeout(() => getController.abort(), options.timeout);
-
-      response = await fetch(target.url, {
-        ...requestInit,
-        method: 'GET',
-        signal: getController.signal,
-      });
-
-      clearTimeout(getTimeoutId);
-    } else {
-      throw fetchError;
-    }
-  }
+  });
+  clearTimeout(timeoutId);
 
   const latency = Date.now() - startTime;
 
