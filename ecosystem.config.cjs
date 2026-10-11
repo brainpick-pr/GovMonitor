@@ -1,8 +1,10 @@
+const path = require('path');
+
 module.exports = {
   apps: [
     {
       name: 'govmonitor-backend',
-      cwd: 'GovMonitor',
+      cwd: __dirname,
       script: 'npx',
       args: 'wrangler dev --port 8787',
       interpreter: 'none',
@@ -16,7 +18,7 @@ module.exports = {
     },
     {
       name: 'govmonitor-frontend',
-      cwd: 'GovMonitor/frontend',
+      cwd: path.join(__dirname, 'frontend'),
       script: 'npx',
       args: 'vite --port 5174 --host',
       interpreter: 'none',
