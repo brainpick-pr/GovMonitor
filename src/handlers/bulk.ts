@@ -12,6 +12,7 @@ import {
   AddTargetPayload,
   Target,
 } from '../types';
+import { isGovernmentDomain, isValidState } from '../utils/validation';
 
 // Indian states for validation
 const INDIAN_STATES = [
@@ -25,19 +26,6 @@ const INDIAN_STATES = [
   'Dadra and Nagar Haveli and Daman and Diu',
   'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
 ];
-
-/**
- * Validate government domain
- */
-function isValidGovernmentDomain(hostname: string): boolean {
-  return (
-    hostname.endsWith('.gov') ||
-    hostname.endsWith('.gov.in') ||
-    hostname.includes('.gov.') ||
-    hostname.endsWith('.gc.ca') ||
-    hostname.includes('.government.')
-  );
-}
 
 /**
  * Parse CSV string into array of objects
@@ -177,7 +165,7 @@ export async function bulkImportTargets(
         }
 
         // Validate government domain
-        if (!isValidGovernmentDomain(hostname)) {
+        if (!isGovernmentDomain(hostname)) {
           result.errors.push({
             row: rowNumber,
             field: 'url',

@@ -264,8 +264,8 @@ function HistoryCharts({
                 <Area
                   type="stepAfter"
                   dataKey="status"
-                  stroke="rgb(34 197 94)"
-                  fill="rgb(34 197 94)"
+                  stroke="var(--chart-2)"
+                  fill="var(--chart-2)"
                   fillOpacity={0.3}
                 />
               </AreaChart>

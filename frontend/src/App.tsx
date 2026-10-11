@@ -23,8 +23,6 @@ import {
   Lock,
   FileText,
   Server,
-  Moon,
-  Sun,
   ChevronLeft,
   ExternalLink,
   User,
@@ -81,16 +79,6 @@ function App() {
   const [refreshing, setRefreshing] = useState(false)
   const [view, setView] = useState<ViewType>("dashboard")
   const [selectedTarget, setSelectedTarget] = useState<Target | null>(null)
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("govmonitor-theme")
-      if (stored) {
-        return stored === "dark"
-      }
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-    }
-    return false
-  })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   const { toast } = useToast()
@@ -108,17 +96,6 @@ function App() {
       setView("login")
     }
   }, [])
-
-  // Toggle dark mode and persist
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark")
-      localStorage.setItem("govmonitor-theme", "dark")
-    } else {
-      document.documentElement.classList.remove("dark")
-      localStorage.setItem("govmonitor-theme", "light")
-    }
-  }, [darkMode])
 
   const fetchStatus = async () => {
     try {
@@ -333,16 +310,6 @@ function App() {
               className={`h-5 w-5 transition-transform ${sidebarCollapsed ? "rotate-180" : ""}`}
             />
             {!sidebarCollapsed && <span>Collapse</span>}
-          </button>
-
-          {/* Dark Mode Toggle */}
-          <button
-            onClick={() => setDarkMode(!darkMode)}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all"
-            title={sidebarCollapsed ? (darkMode ? "Light mode" : "Dark mode") : undefined}
-          >
-            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            {!sidebarCollapsed && <span>{darkMode ? "Light Mode" : "Dark Mode"}</span>}
           </button>
 
           {/* User Auth */}
