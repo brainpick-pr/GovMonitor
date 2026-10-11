@@ -493,7 +493,6 @@ VITE_API_URL=https://your-worker.workers.dev/api
 
 ## Documentation
 
-- [Backend Security Implementation](./SECURITY_IMPLEMENTATION.md)
 - [Frontend Integration Status Report](./FRONTEND_INTEGRATION_STATUS.md)
 - [Proton Mail Comparison](./plans/protonmail-comparison.md)
 - [Security Implementation Plan](./plans/security-implementation-plan.md)
